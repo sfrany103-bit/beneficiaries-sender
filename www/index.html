@@ -246,6 +246,7 @@ let appSettings = loadSettings();
 let rawExcelRows = [], rowsData = [], fileLabel = '', progressMap = {}, activeIdx = -1, wakeLock = null;
 let channel = 'sms', isRunning = false, isPaused = false;
 let pauseResolver = null, returnResolver = null, leftForExternalApp = false;
+  let currentMode = 'all';
 
 function safeGet(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
 function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
@@ -570,7 +571,7 @@ async function sendSingleItem(item) {
   item.channelUsed = channel === 'sms' ? 'SMS' : (appSettings.waApp === 'business' ? 'واتساب الأعمال' : 'واتساب الرسمي');
   try {
     if (channel === 'sms') await (appSettings.auto ? N.sendSms({ phone, message: text }) : N.smsManual({ phone, message: text }));
-    else await N.whatsapp({ phone: phone.replace(/^\+/, ''), message: text, business: appSettings.waApp === 'business', auto: appSettings.auto });
+        else await N.whatsapp({ phone: phone.replace(/^\+/, ''), message: text, business: appSettings.waApp === 'business', auto: appSettings.auto, retry: currentMode === 'failed' });
     return 'ok';
   } catch (e) {
     if (e && (e.code === 'NO_SERVICE' || e.code === 'NO_PERM' || e.code === 'UNIMPLEMENTED')) {
@@ -582,6 +583,7 @@ async function sendSingleItem(item) {
 }
 
 async function startBatch(mode) {
+    currentMode = mode;
   if (isRunning || !rowsData.length) return;
   isRunning = true; isPaused = false; updateStatsAndButtons();
   try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
