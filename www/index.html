@@ -15,7 +15,7 @@
 [data-theme=gold]{--ink:#2b2110;--a:#b7791f;--b:#f5b84b;--gold:#fde68a;--bg:#faf5e8;--text:#2f2410;--mute:#85744f;--line:#eadfc4;--soft:#fbf7ec;--field:#fefcf6}
 *{box-sizing:border-box;font-family:'Tajawal',Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
 button,label,.sw{touch-action:manipulation}
-body{margin:0;background:var(--bg);color:var(--text);padding-bottom:40px;transition:background .4s,color .4s}
+body{margin:0;background:var(--bg);color:var(--text);padding-bottom:90px;transition:background .4s,color .4s}
 .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--ink),var(--a));color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 70px;border-radius:0 0 34px 34px}
 .hero::before,.hero::after{content:"";position:absolute;border-radius:50%;filter:blur(40px);opacity:.45;animation:float 9s ease-in-out infinite;pointer-events:none}
 .hero::before{width:200px;height:200px;background:var(--b);top:-60px;left:-40px}
@@ -95,7 +95,7 @@ textarea{min-height:110px;resize:vertical}
 .hidden{display:none!important}
 .sec{animation:in .3s}
 @keyframes in{from{opacity:0;transform:translateY(6px)}}
-.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,40px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.4s;z-index:50;max-width:90%}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,40px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.4s;z-index:50;max-width:90%}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:40;padding:20px}
 .sheet{background:var(--card);border-radius:28px;padding:22px;width:100%;max-width:380px;text-align:center;animation:pop .3s}
@@ -104,6 +104,9 @@ textarea{min-height:110px;resize:vertical}
 .sheet .btn{min-width:90px;padding:12px}
 .conf{position:fixed;top:-12px;width:10px;height:14px;border-radius:3px;z-index:60;pointer-events:none;animation:fall 2.4s ease-in forwards}
 @keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.7}}
+.fab{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;display:flex;align-items:center;gap:10px;background:var(--ink);color:#fff;padding:8px 8px 8px 16px;border-radius:999px;box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.fab span{flex:1;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fab .btn{flex:none;min-width:0;padding:11px 22px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -172,8 +175,12 @@ textarea{min-height:110px;resize:vertical}
       <h2>الإرسال</h2>
       <div class="swrow">
         <div><b>الإرسال التلقائي الكامل</b>
-          <small>SMS: يُرسل مباشرة إذا الإضافة SmsSender موجودة. واتساب: يُرسل مباشرة إذا الإضافة WaAutoSender موجودة، وإلا يفتح المحادثة ويكمل بدون تأكيد (تُسجّل "غير مؤكد").</small></div>
+          <small>يرسل SMS وواتساب (الرسمي والأعمال) بدون أي تدخل منك، ويسجل النتيجة تلقائياً. زر الإيقاف المؤقت يبقى ظاهراً.</small></div>
         <span class="tg"><input type="checkbox" id="autoToggle" /><i></i></span>
+      </div>
+      <div class="row">
+        <button type="button" class="btn b-main" onclick="openNative('openAccessibility')">تفعيل خدمة واتساب</button>
+        <button type="button" class="btn b-dark" onclick="openNative('openOverlay')">إذن العودة للتطبيق</button>
       </div>
 
       <label class="l" for="waAppSelect">تطبيق الواتساب</label>
@@ -187,7 +194,7 @@ textarea{min-height:110px;resize:vertical}
       <input type="number" id="startRowInput" min="1" value="2" />
       <label class="l" for="delaySecondsInput">الفاصل بين الرسائل بالثواني (1 إلى 60)</label>
       <input type="number" id="delaySecondsInput" min="1" max="60" value="2" />
-      <div class="hint" style="margin-top:6px;font-size:12px">لواتساب يُفضّل 5 ثوانٍ فأكثر لتقليل خطر الحظر.</div>
+      <div class="hint" style="margin-top:6px;font-size:12px">لواتساب يُفضّل 8 ثوانٍ فأكثر لتقليل خطر الحظر.</div>
     </div>
 
     <div class="card">
@@ -205,6 +212,7 @@ textarea{min-height:110px;resize:vertical}
   </div>
 </div>
 
+<div class="fab hidden" id="fab"><span id="fabText">جاري الإرسال...</span><button type="button" id="fabBtn" class="btn b-pause" onclick="togglePauseResume()">إيقاف مؤقت</button></div>
 <div class="toast" id="toast" role="status"></div>
 <div class="modal hidden" id="modal">
   <div class="sheet"><h3 id="mTitle"></h3><p id="mText"></p>
@@ -452,6 +460,9 @@ function updateStatsAndButtons() {
   if (!isRunning) isPaused = false;
   pb.textContent = isPaused ? 'استئناف' : 'إيقاف مؤقت';
   pb.classList.toggle('paused', isPaused);
+  $('fab').classList.toggle('hidden', !isRunning);
+  $('fabBtn').textContent = isPaused ? 'استئناف' : 'إيقاف مؤقت';
+  $('fabBtn').classList.toggle('paused', isPaused);
 }
 
 /* ---- الجدول (تحديث الصف المتغير فقط) ---- */
@@ -503,8 +514,8 @@ function waitUntilReturnedToApp(timeoutMs) {
   });
 }
 
-/* يرجع 'ok' أو 'opened' أو 'skip' أو يرمي خطأ */
-async function sendSingleItem(item) {
+/* ---- الإرسال القديم (احتياطي إذا الإضافة الأصلية غير موجودة) ---- */
+async function legacySend(item) {
   const phone = cleanPhone(item.phone);
   const text = buildFinalMessage(item.beneficiary, item.rawMessage);
   item.finalMessage = text;
@@ -525,10 +536,6 @@ async function sendSingleItem(item) {
     ans = await askConfirm('رسالة SMS', `${who}\nهل تم إرسال الرسالة؟`);
   } else {
     const num = phone.replace(/^\+/, ''), enc = encodeURIComponent(text);
-    const wa = P && P.WaAutoSender;
-    if (auto && wa && typeof wa.send === 'function') {
-      await wa.send({ phone: num, message: text, business: appSettings.waApp === 'business' }); return 'ok';
-    }
     leftForExternalApp = false;
     if (appSettings.waApp === 'business' && /Android/i.test(navigator.userAgent)) {
       window.location.href = `intent://send?phone=${num}&text=${enc}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;end`;
@@ -541,6 +548,29 @@ async function sendSingleItem(item) {
   }
   if (ans === 'no') throw new Error('لم يتم تأكيد الإرسال');
   return ans;
+}
+
+/* ---- الإرسال عبر الإضافة الأصلية Sender ---- */
+const NATIVE = () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Sender;
+function openNative(m) { const N = NATIVE(); if (N) N[m](); else toast('متاح داخل تطبيق الأندرويد فقط'); }
+
+async function sendSingleItem(item) {
+  const N = NATIVE(), phone = cleanPhone(item.phone), text = buildFinalMessage(item.beneficiary, item.rawMessage);
+  $('fabText').textContent = item.beneficiary || item.phone;
+  if (!N || !isValidPhone(phone) || !text) return legacySend(item);
+  item.finalMessage = text;
+  item.channelUsed = channel === 'sms' ? 'SMS' : (appSettings.waApp === 'business' ? 'واتساب الأعمال' : 'واتساب الرسمي');
+  try {
+    if (channel === 'sms') await (appSettings.auto ? N.sendSms({ phone, message: text }) : N.smsManual({ phone, message: text }));
+    else await N.whatsapp({ phone: phone.replace(/^\+/, ''), message: text, business: appSettings.waApp === 'business', auto: appSettings.auto });
+    return 'ok';
+  } catch (e) {
+    if (e && (e.code === 'NO_SERVICE' || e.code === 'NO_PERM' || e.code === 'UNIMPLEMENTED')) {
+      if (e.code === 'NO_SERVICE') toast('فعّل خدمة واتساب من الإعدادات');
+      return legacySend(item);
+    }
+    throw e;
+  }
 }
 
 async function startBatch(mode) {
@@ -564,8 +594,8 @@ async function startBatch(mode) {
       if (res === 'skip') Object.assign(item, { status: 'تم التخطي', statusClass: 'st-warn', phoneClass: 'sent-warn', sentFlag: 'تم التخطي', skipped: true });
       else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
       else Object.assign(item, { status: channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
-    } catch (_) {
-      Object.assign(item, { status: 'لم يتم الإرسال', statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
+    } catch (err) {
+      Object.assign(item, { status: err && err.code === 'NOT_FOUND' ? 'لم يتم الإرسال — لا يوجد واتساب' : 'لم يتم الإرسال', statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
     }
     saveItemProgress(item); updateRow(i); updateStatsAndButtons();
     await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
