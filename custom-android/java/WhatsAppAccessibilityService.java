@@ -40,10 +40,10 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
                 if (send != null) break;
             }
         }
-                if (send == null) {
-            if (handleInvalidNumber(root)) return;
+        if (send == null) {
+            handleInvalidNumber(root);
             return;
-                }
+        }
 
         long now = System.currentTimeMillis();
         if (now - lastClick < 1500) return;
@@ -69,6 +69,52 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
             } catch (Exception ignored) {}
             if (call != null) call.resolve();
         }, 1200);
+    }
+
+    private boolean handleInvalidNumber(AccessibilityNodeInfo root) {
+        boolean invalid = false;
+        String[] markers = {
+            "isn't on WhatsApp", "ليس في واتساب", "ليس على واتساب",
+            "Invite to WhatsApp", "دعوة لاستخدام واتساب"
+        };
+        for (String m : markers) {
+            List<AccessibilityNodeInfo> l = root.findAccessibilityNodeInfosByText(m);
+            if (l != null && !l.isEmpty()) { invalid = true; break; }
+        }
+        if (!invalid) return false;
+
+        AccessibilityNodeInfo cancel = null;
+        for (String c : new String[]{"Cancel", "إلغاء", "الغاء"}) {
+            List<AccessibilityNodeInfo> l = root.findAccessibilityNodeInfosByText(c);
+            if (l != null) {
+                for (AccessibilityNodeInfo n : l) {
+                    if (n.isClickable()) { cancel = n; break; }
+                }
+            }
+            if (cancel != null) break;
+        }
+        if (cancel == null) return false;
+
+        long now = System.currentTimeMillis();
+        if (now - lastClick < 1500) return true;
+        lastClick = now;
+        cancel.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        armed = false;
+
+        final PluginCall call = pendingCall;
+        pendingCall = null;
+        final Context ctx = getApplicationContext();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                Intent back = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
+                if (back != null) {
+                    back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                    ctx.startActivity(back);
+                }
+            } catch (Exception ignored) {}
+            if (call != null) call.reject("not on whatsapp", "NOT_FOUND");
+        }, 800);
+        return true;
     }
 
     @Override
