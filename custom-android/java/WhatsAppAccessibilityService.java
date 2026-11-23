@@ -3,6 +3,7 @@ package com.beneficiaries.sender;
 import android.accessibilityservice.AccessibilityService;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
@@ -17,7 +18,11 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
     public static volatile PluginCall pendingCall = null;
     public static volatile boolean armed = false;
     public static volatile boolean manualMode = false;
+    public static volatile boolean reuseDraft = false;
+    public static volatile String pendingText = null;
+    public static volatile long entrySeen = 0;
     private long lastClick = 0;
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -38,7 +43,11 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
 
         AccessibilityNodeInfo send = findSend(root, pkg);
         if (send == null) {
-            handleInvalidNumber(root);
+            if (handleInvalidNumber(root)) return;
+            if (reuseDraft && entrySeen == 0 && findEntry(root, pkg) != null) {
+                entrySeen = System.currentTimeMillis();
+                handler.postDelayed(this::checkDraft, 2000);
+            }
             return;
         }
         if (manualMode) return;
@@ -53,6 +62,26 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
         lastClick = now;
         target.performAction(AccessibilityNodeInfo.ACTION_CLICK);
         finish(true, null, 1200);
+    }
+
+    private void checkDraft() {
+        if (!armed || !reuseDraft || pendingText == null) return;
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) { entrySeen = 0; return; }
+        CharSequence pkg = root.getPackageName();
+        if (pkg == null) { entrySeen = 0; return; }
+        if (findSend(root, pkg) != null) return;
+        AccessibilityNodeInfo entry = findEntry(root, pkg);
+        if (entry == null) { entrySeen = 0; return; }
+        Bundle args = new Bundle();
+        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, pendingText);
+        entry.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
+        reuseDraft = false;
+    }
+
+    private AccessibilityNodeInfo findEntry(AccessibilityNodeInfo root, CharSequence pkg) {
+        List<AccessibilityNodeInfo> e = root.findAccessibilityNodeInfosByViewId(pkg + ":id/entry");
+        return (e != null && !e.isEmpty()) ? e.get(0) : null;
     }
 
     private AccessibilityNodeInfo findSend(AccessibilityNodeInfo root, CharSequence pkg) {
@@ -118,10 +147,13 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
     private void finish(final boolean ok, final String reason, long delay) {
         armed = false;
         manualMode = false;
+        reuseDraft = false;
+        pendingText = null;
+        entrySeen = 0;
         final PluginCall call = pendingCall;
         pendingCall = null;
         final Context ctx = getApplicationContext();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+        handler.postDelayed(() -> {
             try {
                 Intent back = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
                 if (back != null) {
