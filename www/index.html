@@ -182,3 +182,458 @@ td:nth-child(2){min-width:95px;line-height:1.6}
       <h2>الإرسال</h2>
       <div class="swrow">
         <div><b>الإرسال التلقائي الكامل</b>
+          <small>يرسل SMS وواتساب (الرسمي والأعمال) بدون أي تدخل منك، ويسجل النتيجة تلقائياً. زر الإيقاف المؤقت يبقى ظاهراً.</small></div>
+        <span class="tg"><input type="checkbox" id="autoToggle" /><i></i></span>
+      </div>
+      <div class="row">
+        <button type="button" class="btn b-main" onclick="openNative('openAccessibility')">تفعيل خدمة واتساب</button>
+        <button type="button" class="btn b-dark" onclick="openNative('openOverlay')">إذن العودة للتطبيق</button>
+      </div>
+
+      <label class="l" for="waAppSelect">تطبيق الواتساب</label>
+      <select id="waAppSelect">
+        <option value="official">واتساب الرسمي</option>
+        <option value="business">واتساب الأعمال (Business)</option>
+      </select>
+      <label class="l" for="countryInput">رمز الدولة (اختياري، مثال 963 لسوريا)</label>
+      <input type="number" id="countryInput" placeholder="يُضاف للأرقام التي تبدأ بصفر" />
+      <label class="l" for="startRowInput">سطر البداية في الإكسل</label>
+      <input type="number" id="startRowInput" min="1" value="2" />
+      <label class="l" for="delaySecondsInput">الفاصل بين الرسائل بالثواني (1 إلى 60)</label>
+      <input type="number" id="delaySecondsInput" min="1" max="60" value="2" />
+      <div class="hint" style="margin-top:6px;font-size:12px">لواتساب يُفضّل 8 ثوانٍ فأكثر لتقليل خطر الحظر.</div>
+    </div>
+
+    <div class="card">
+      <h2>قالب الرسالة</h2>
+      <div class="hint"><b>{name}</b> = اسم المستفيد (B) — <b>{message}</b> = نص العمود C (يُحذف إذا فارغ).</div>
+      <textarea id="templateInput"></textarea>
+      <div class="row"><button type="button" class="btn b-main" onclick="previewMessageNow()">معاينة الرسالة</button></div>
+      <div id="previewBox" class="preview hidden"></div>
+      <div class="row" style="margin-top:16px">
+        <button type="button" class="btn b-dark" onclick="saveSettings()">حفظ</button>
+        <button type="button" class="btn b-grey" onclick="resetSettings()">الافتراضي</button>
+      </div>
+      <div class="row"><button type="button" class="btn b-retry" onclick="clearProgress()">مسح التقدم المحفوظ</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="fab hidden" id="fab"><span id="fabText">جاري الإرسال...</span><button type="button" id="fabBtn" class="btn b-pause" onclick="togglePauseResume()">إيقاف مؤقت</button></div>
+<div class="toast" id="toast" role="status"></div>
+<div class="modal hidden" id="modal">
+  <div class="sheet"><h3 id="mTitle"></h3><p id="mText"></p>
+    <div class="row">
+      <button type="button" class="btn b-go" data-r="ok">تم</button>
+      <button type="button" class="btn b-retry" data-r="no">لم يُرسل</button>
+      <button type="button" class="btn b-grey" data-r="skip">تخطي</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'beneficiaries_sender_settings_v2';
+const PROGRESS_KEY = 'beneficiaries_sender_progress_v1';
+const DEFAULT_SETTINGS = { template: 'مرحباً {name}\n{message}', waApp: 'official', startRow: 2, delaySeconds: 2, countryCode: '', theme: 'green', auto: false };
+const THEMES = [
+  { id: 'green', name: 'أخضر', c: ['#34d3a4', '#0f766e'] }, { id: 'night', name: 'ليلي', c: ['#5eead4', '#06121a'] },
+  { id: 'violet', name: 'بنفسجي', c: ['#c084fc', '#7c3aed'] }, { id: 'ocean', name: 'محيطي', c: ['#38bdf8', '#0369a1'] },
+  { id: 'sunset', name: 'غروب', c: ['#fb923c', '#e11d48'] }, { id: 'gold', name: 'ذهبي', c: ['#f5b84b', '#b7791f'] }
+];
+const $ = id => document.getElementById(id);
+
+let appSettings = loadSettings();
+let rawExcelRows = [], rowsData = [], fileLabel = '', progressMap = {}, activeIdx = -1, wakeLock = null;
+let channel = 'sms', isRunning = false, isPaused = false;
+let pauseResolver = null, returnResolver = null, leftForExternalApp = false;
+
+function safeGet(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
+function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
+const persistSettings = () => safeSet(STORAGE_KEY, JSON.stringify(appSettings));
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(safeGet(STORAGE_KEY) || 'null') || {};
+    const sec = Number(s.delaySeconds), row = Number(s.startRow);
+    return {
+      template: typeof s.template === 'string' ? s.template : DEFAULT_SETTINGS.template,
+      waApp: s.waApp === 'business' ? 'business' : 'official',
+      startRow: Number.isFinite(row) && row >= 1 ? Math.floor(row) : 2,
+      delaySeconds: Number.isFinite(sec) && sec >= 1 && sec <= 60 ? Math.round(sec) : 2,
+      countryCode: String(s.countryCode || '').replace(/\D/g, ''),
+      theme: THEMES.some(t => t.id === s.theme) ? s.theme : 'green',
+      auto: s.auto === true
+    };
+  } catch (_) { return { ...DEFAULT_SETTINGS }; }
+}
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ---- المظهر ---- */
+function applyTheme() {
+  document.documentElement.dataset.theme = appSettings.theme;
+  document.querySelectorAll('.sw').forEach(s => s.classList.toggle('active', s.dataset.id === appSettings.theme));
+}
+function buildThemes() {
+  $('themes').innerHTML = THEMES.map(t =>
+    `<button type="button" class="sw" data-id="${t.id}" title="${t.name}" aria-label="${t.name}" style="background:linear-gradient(135deg,${t.c[0]},${t.c[1]})"></button>`).join('');
+  $('themes').addEventListener('click', e => {
+    const b = e.target.closest('.sw'); if (!b) return;
+    appSettings.theme = b.dataset.id; persistSettings(); applyTheme(); toast('تم تغيير المظهر');
+  });
+}
+$('autoToggle').addEventListener('change', e => {
+  appSettings.auto = e.target.checked; persistSettings();
+  toast(appSettings.auto ? 'تم تفعيل الإرسال التلقائي' : 'تم إيقاف الإرسال التلقائي');
+});
+
+/* ---- تأثير الضغط ---- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.btn'); if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), s = document.createElement('span');
+  s.className = 'rip'; s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+  b.appendChild(s); setTimeout(() => s.remove(), 600);
+});
+
+function askConfirm(title, text) {
+  return new Promise(resolve => {
+    $('mTitle').textContent = title; $('mText').textContent = text;
+    const m = $('modal'); m.classList.remove('hidden');
+    const h = e => {
+      const r = e.target.closest('[data-r]'); if (!r) return;
+      m.removeEventListener('click', h); m.classList.add('hidden'); resolve(r.dataset.r);
+    };
+    m.addEventListener('click', h);
+  });
+}
+
+function confetti() {
+  const cols = ['#34d3a4', '#f5b84b', '#0f766e', '#f0595e', '#3b82f6'];
+  for (let i = 0; i < 32; i++) {
+    const c = document.createElement('div'); c.className = 'conf';
+    c.style.left = Math.random() * 100 + 'vw'; c.style.background = cols[i % 5];
+    c.style.animationDelay = Math.random() * .6 + 's'; c.style.animationDuration = 1.8 + Math.random() * 1.4 + 's';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4000);
+  }
+}
+
+function populateSettingsForm() {
+  $('templateInput').value = appSettings.template;
+  $('waAppSelect').value = appSettings.waApp;
+  $('startRowInput').value = appSettings.startRow;
+  $('delaySecondsInput').value = appSettings.delaySeconds;
+  $('countryInput').value = appSettings.countryCode;
+  $('autoToggle').checked = appSettings.auto;
+  $('previewBox').classList.add('hidden'); $('previewBox').textContent = '';
+}
+
+function formatTemplateWithValues(tpl, beneficiary, colC) {
+  const name = String(beneficiary ?? '').trim(), msg = String(colC ?? '').trim();
+  let r = String(tpl ?? '').replace(/\{name\}/g, name);
+  r = msg ? r.replace(/\{message\}/g, msg) : r.replace(/\n?\{message\}\n?/g, '\n');
+  return r.replace(/\n{3,}/g, '\n\n').trim();
+}
+const buildFinalMessage = (b, c) => formatTemplateWithValues(appSettings.template, b, c);
+
+function previewMessageNow() {
+  const s = rowsData[0];
+  const t = formatTemplateWithValues($('templateInput').value, s ? s.beneficiary : 'الاسم من العمود B', s ? s.rawMessage : '');
+  const box = $('previewBox'); box.textContent = t || '(القالب فارغ)'; box.classList.remove('hidden');
+}
+
+function saveSettings() {
+  const clamp = (v, a, b, d) => { v = parseInt(v, 10); return Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d; };
+  appSettings = {
+    ...appSettings,
+    template: $('templateInput').value,
+    waApp: $('waAppSelect').value === 'business' ? 'business' : 'official',
+    startRow: clamp($('startRowInput').value, 1, 100000, 2),
+    delaySeconds: clamp($('delaySecondsInput').value, 1, 60, 2),
+    countryCode: $('countryInput').value.replace(/\D/g, ''),
+    auto: $('autoToggle').checked
+  };
+  persistSettings(); populateSettingsForm();
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تم حفظ الإعدادات');
+}
+
+function resetSettings() {
+  appSettings = { ...DEFAULT_SETTINGS };
+  persistSettings(); populateSettingsForm(); applyTheme();
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تمت استعادة الإعدادات الافتراضية');
+}
+
+function switchTab(tab) {
+  const isSend = tab === 'send';
+  $('sendSection').classList.toggle('hidden', !isSend);
+  $('settingsSection').classList.toggle('hidden', isSend);
+  $('tabSendBtn').classList.toggle('active', isSend);
+  $('tabSettingsBtn').classList.toggle('active', !isSend);
+  if (!isSend) populateSettingsForm();
+  window.scrollTo({ top: 0 });
+}
+
+function setChannel(ch) {
+  channel = ch;
+  $('smsBtn').classList.toggle('active', ch === 'sms');
+  $('waBtn').classList.toggle('active', ch === 'whatsapp');
+}
+
+/* ---- الأرقام ---- */
+function cleanPhone(raw) {
+  let p = String(raw ?? '').replace(/[^\d+]/g, '');
+  if (p.startsWith('00')) p = '+' + p.slice(2);
+  if (appSettings.countryCode && p.startsWith('0')) p = '+' + appSettings.countryCode + p.slice(1);
+  return p;
+}
+const isValidPhone = raw => cleanPhone(raw).replace(/\D/g, '').length >= 6;
+
+/* ---- حفظ التقدم ---- */
+const progId = it => `${fileLabel}|${it.excelRow}|${it.phone}|${it.beneficiary}`;
+function loadProgress() { try { progressMap = JSON.parse(safeGet(PROGRESS_KEY) || '{}') || {}; } catch (_) { progressMap = {}; } }
+function saveItemProgress(it) {
+  progressMap[progId(it)] = { s: it.status, sc: it.statusClass, pc: it.phoneClass, f: it.sentFlag, ch: it.channelUsed, sk: !!it.skipped };
+  safeSet(PROGRESS_KEY, JSON.stringify(progressMap));
+}
+function clearProgress() {
+  progressMap = {}; safeSet(PROGRESS_KEY, '{}');
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تم مسح التقدم المحفوظ');
+}
+
+function rebuildRowsFromRaw() {
+  if (!rawExcelRows.length) return;
+  loadProgress();
+  const startIdx = Math.max(0, appSettings.startRow - 1);
+  rowsData = []; activeIdx = -1;
+  let restored = 0;
+  for (let i = startIdx; i < rawExcelRows.length; i++) {
+    const r = rawExcelRows[i] || [];
+    const phone = String(r[0] ?? '').trim(), beneficiary = String(r[1] ?? '').trim(), rawMessage = String(r[2] ?? '').trim();
+    if (!(phone || beneficiary || rawMessage)) continue;
+    const valid = isValidPhone(phone);
+    const item = {
+      excelRow: i + 1, phone, beneficiary, rawMessage, finalMessage: '', channelUsed: '',
+      status: valid ? 'بانتظار الإرسال' : 'رقم غير صالح', statusClass: valid ? '' : 'st-warn',
+      phoneClass: valid ? '' : 'sent-warn', sentFlag: valid ? 'بانتظار الإرسال' : 'رقم غير صالح',
+      skipped: !valid, invalid: !valid
+    };
+    const sv = progressMap[progId(item)];
+    if (valid && sv) {
+      Object.assign(item, { status: sv.s, statusClass: sv.sc, phoneClass: sv.pc, sentFlag: sv.f, channelUsed: sv.ch || '', skipped: !!sv.sk });
+      restored++;
+    }
+    rowsData.push(item);
+  }
+  renderTable(); updateStatsAndButtons();
+  $('currentText').textContent = `تم تحميل ${rowsData.length} سطر` + (restored ? ` — تمت استعادة ${restored} نتيجة سابقة` : '');
+}
+
+$('excelFile').addEventListener('change', function (e) {
+  const file = e.target.files[0]; if (!file) return;
+  fileLabel = file.name; $('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+      rawExcelRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      rebuildRowsFromRaw(); toast('تم تحميل الملف');
+    } catch (_) { toast('تعذّر قراءة الملف، تأكد من صيغته'); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function bump(id) { const el = $(id); el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 300); }
+
+function updateStatsAndButtons() {
+  const total = rowsData.length;
+  let ok = 0, fail = 0, skip = 0;
+  for (const x of rowsData) { if (x.phoneClass === 'sent-ok') ok++; else if (x.phoneClass === 'sent-fail') fail++; else if (x.phoneClass === 'sent-warn') skip++; }
+  const pct = total ? Math.round((ok + fail + skip) / total * 100) : 0;
+  if ($('okNum').textContent != ok) bump('cOk');
+  if ($('failNum').textContent != fail) bump('cFail');
+  if ($('skipNum').textContent != skip) bump('cSkip');
+  $('totalNum').textContent = total; $('okNum').textContent = ok; $('failNum').textContent = fail; $('skipNum').textContent = skip;
+  $('pctText').textContent = pct + '%';
+  $('ringFg').style.strokeDashoffset = 276.5 * (1 - pct / 100);
+  $('startBtn').disabled = isRunning || total === 0;
+  $('retryFailedBtn').disabled = isRunning || fail === 0;
+  $('exportBtn').disabled = total === 0;
+  const pb = $('pauseResumeBtn'); pb.disabled = !isRunning;
+  if (!isRunning) isPaused = false;
+  pb.textContent = isPaused ? 'استئناف' : 'إيقاف مؤقت';
+  pb.classList.toggle('paused', isPaused);
+  $('fab').classList.toggle('hidden', !isRunning);
+  $('fabBtn').textContent = isPaused ? 'استئناف' : 'إيقاف مؤقت';
+  $('fabBtn').classList.toggle('paused', isPaused);
+}
+
+/* ---- الجدول (تحديث الصف المتغير فقط) ---- */
+function rowHtml(it, i) {
+  return `<tr id="row-${i}" class="${i === activeIdx ? 'row-active' : ''}"><td>${it.excelRow}</td><td>${escapeHtml(it.beneficiary)}</td>` +
+    `<td dir="ltr" class="phone-cell ${it.phoneClass}">${escapeHtml(it.phone || 'بدون رقم')}</td>` +
+    `<td class="${it.statusClass}"><span class="pill">${escapeHtml(it.status)}</span></td></tr>`;
+}
+function renderTable() {
+  const tb = $('monitorBody');
+  tb.innerHTML = rowsData.length ? rowsData.map(rowHtml).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--mute)">لا توجد صفوف صالحة</td></tr>';
+}
+function updateRow(i) { const el = $('row-' + i); if (el) el.outerHTML = rowHtml(rowsData[i], i); }
+function setActive(i) {
+  const prev = activeIdx; activeIdx = i;
+  if (prev >= 0) updateRow(prev);
+  if (i >= 0) {
+    updateRow(i);
+    const el = $('row-' + i), tw = $('tw');
+    if (el) tw.scrollTo({ top: el.offsetTop - tw.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' });
+  }
+}
+
+function togglePauseResume() {
+  if (!isRunning) return;
+  isPaused = !isPaused; updateStatsAndButtons();
+  if (isPaused) $('currentText').textContent = 'الحالة: سيتوقف بعد الرسالة الحالية — اضغط استئناف للمتابعة';
+  else {
+    $('currentText').textContent = 'الحالة: تم الاستئناف...';
+    if (pauseResolver) { const f = pauseResolver; pauseResolver = null; f(); }
+  }
+}
+async function waitIfPaused() { if (isPaused) await new Promise(r => { pauseResolver = r; }); }
+
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { leftForExternalApp = true; }
+  else if (leftForExternalApp) {
+    leftForExternalApp = false;
+    if (returnResolver) { const f = returnResolver; returnResolver = null; setTimeout(f, 250); }
+  }
+});
+
+function waitUntilReturnedToApp(timeoutMs) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = v => { if (done) return; done = true; clearTimeout(timer); returnResolver = null; resolve(v); };
+    returnResolver = () => finish(true);
+    const timer = setTimeout(() => finish(!leftForExternalApp), timeoutMs);
+  });
+}
+
+/* ---- الإرسال القديم (احتياطي إذا الإضافة الأصلية غير موجودة) ---- */
+async function legacySend(item) {
+  const phone = cleanPhone(item.phone);
+  const text = buildFinalMessage(item.beneficiary, item.rawMessage);
+  item.finalMessage = text;
+  item.channelUsed = channel === 'sms' ? 'SMS' : (appSettings.waApp === 'business' ? 'واتساب الأعمال' : 'واتساب الرسمي');
+  if (!isValidPhone(phone) || !text) throw new Error('بيانات ناقصة');
+  const auto = appSettings.auto, who = `السطر ${item.excelRow} (${item.beneficiary || phone})`;
+  const P = window.Capacitor && window.Capacitor.Plugins;
+  let ans;
+
+  if (channel === 'sms') {
+    const sms = P && P.SmsSender;
+    if (sms && typeof sms.sendSms === 'function') { await sms.sendSms({ phone, message: text }); return 'ok'; }
+    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?';
+    leftForExternalApp = false;
+    window.location.href = `sms:${phone}${sep}body=${encodeURIComponent(text)}`;
+    await waitUntilReturnedToApp(auto ? 8000 : 20000);
+    if (auto) return 'opened';
+    ans = await askConfirm('رسالة SMS', `${who}\nهل تم إرسال الرسالة؟`);
+  } else {
+    const num = phone.replace(/^\+/, ''), enc = encodeURIComponent(text);
+    leftForExternalApp = false;
+    if (appSettings.waApp === 'business' && /Android/i.test(navigator.userAgent)) {
+      window.location.href = `intent://send?phone=${num}&text=${enc}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;end`;
+    } else {
+      window.location.href = `https://wa.me/${num}?text=${enc}`;
+    }
+    await waitUntilReturnedToApp(auto ? 12000 : 30000);
+    if (auto) return 'opened';
+    ans = await askConfirm('واتساب', `${who}\nهل ضغطت إرسال وتم إرسال الرسالة؟`);
+  }
+  if (ans === 'no') throw new Error('لم يتم تأكيد الإرسال');
+  return ans;
+}
+
+/* ---- الإرسال عبر الإضافة الأصلية Sender ---- */
+const NATIVE = () => window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Sender;
+function openNative(m) { const N = NATIVE(); if (N) N[m](); else toast('متاح داخل تطبيق الأندرويد فقط'); }
+
+async function sendSingleItem(item) {
+  const N = NATIVE(), phone = cleanPhone(item.phone), text = buildFinalMessage(item.beneficiary, item.rawMessage);
+  $('fabText').textContent = item.beneficiary || item.phone;
+  if (channel === 'whatsapp' && !appSettings.auto) $('currentText').textContent = `السطر ${item.excelRow}: بانتظار ضغطك على إرسال…`;
+  if (!N || !isValidPhone(phone) || !text) return legacySend(item);
+  item.finalMessage = text;
+  item.channelUsed = channel === 'sms' ? 'SMS' : (appSettings.waApp === 'business' ? 'واتساب الأعمال' : 'واتساب الرسمي');
+  try {
+    if (channel === 'sms') await (appSettings.auto ? N.sendSms({ phone, message: text }) : N.smsManual({ phone, message: text }));
+    else await N.whatsapp({ phone: phone.replace(/^\+/, ''), message: text, business: appSettings.waApp === 'business', auto: appSettings.auto });
+    return 'ok';
+  } catch (e) {
+    if (e && (e.code === 'NO_SERVICE' || e.code === 'NO_PERM' || e.code === 'UNIMPLEMENTED')) {
+      if (e.code === 'NO_SERVICE') toast('فعّل خدمة واتساب من الإعدادات');
+      return legacySend(item);
+    }
+    throw e;
+  }
+}
+
+async function startBatch(mode) {
+  if (isRunning || !rowsData.length) return;
+  isRunning = true; isPaused = false; updateStatsAndButtons();
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+
+  for (let i = 0; i < rowsData.length; i++) {
+    await waitIfPaused();
+    const item = rowsData[i];
+    if (item.invalid) continue;
+    const go = mode === 'failed' ? item.phoneClass === 'sent-fail' : (item.phoneClass !== 'sent-ok' && !item.skipped);
+    if (!go) continue;
+
+    item.status = 'جاري الإرسال...'; item.statusClass = ''; item.skipped = false;
+    setActive(i);
+    $('currentText').textContent = `السطر ${item.excelRow}: ${item.beneficiary || item.phone}`;
+
+    try {
+      const res = await sendSingleItem(item);
+      if (res === 'skip') Object.assign(item, { status: 'تم التخطي', statusClass: 'st-warn', phoneClass: 'sent-warn', sentFlag: 'تم التخطي', skipped: true });
+      else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
+      else Object.assign(item, { status: channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
+    } catch (err) {
+      Object.assign(item, { status: err && err.code === 'NOT_FOUND' ? 'لم يتم الإرسال — لا يوجد واتساب' : 'لم يتم الإرسال', statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
+    }
+    saveItemProgress(item); updateRow(i); updateStatsAndButtons();
+    await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
+    await waitIfPaused();
+  }
+
+  setActive(-1);
+  try { if (wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (_) {}
+  isRunning = false; isPaused = false; updateStatsAndButtons();
+  $('currentText').textContent = 'الحالة: انتهى الإرسال — راجع النتائج أو حمّل الملف.';
+  if (rowsData.some(x => x.phoneClass === 'sent-ok')) { confetti(); toast('انتهى الإرسال'); }
+}
+
+function exportReportExcel() {
+  if (!rowsData.length) return;
+  const rows = rowsData.map(it => ({
+    'رقم السطر': it.excelRow, 'رقم الهاتف': it.phone, 'اسم المستفيد': it.beneficiary,
+    'الرسالة النهائية': it.finalMessage || buildFinalMessage(it.beneficiary, it.rawMessage),
+    'نتيجة الإرسال': it.sentFlag, 'التفاصيل': it.status, 'القناة': it.channelUsed || '-'
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'نتائج الإرسال');
+  XLSX.writeFile(wb, 'نتائج_إرسال_المستفيدين.xlsx');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+buildThemes(); applyTheme(); populateSettingsForm();
+</script>
+</body>
+</html>
