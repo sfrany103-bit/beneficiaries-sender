@@ -40,7 +40,10 @@ public class WhatsAppAccessibilityService extends AccessibilityService {
                 if (send != null) break;
             }
         }
-        if (send == null) return;
+                if (send == null) {
+            if (handleInvalidNumber(root)) return;
+            return;
+                }
 
         long now = System.currentTimeMillis();
         if (now - lastClick < 1500) return;
