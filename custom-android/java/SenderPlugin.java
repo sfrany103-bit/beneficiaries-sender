@@ -3,7 +3,6 @@ package com.beneficiaries.sender;
 import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -11,13 +10,12 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.telephony.SmsManager;
 
-import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-import com.getcapacitor.PluginMethod;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -100,9 +98,18 @@ public class SenderPlugin extends Plugin {
                     if (WhatsAppAccessibilityService.pendingCall == call) {
                         WhatsAppAccessibilityService.armed = false;
                         WhatsAppAccessibilityService.pendingCall = null;
+                        try {
+                            Intent back = getContext().getPackageManager()
+                                .getLaunchIntentForPackage(getContext().getPackageName());
+                            if (back != null) {
+                                back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                                getContext().startActivity(back);
+                            }
+                        } catch (Exception ignored) {}
                         call.reject("timeout", "TIMEOUT");
                     }
-                }, 25000);
+                }, 12000);
             }
             getContext().startActivity(i);
             if (!auto) call.resolve();
