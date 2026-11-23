@@ -605,7 +605,9 @@ async function startBatch(mode) {
       else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
       else Object.assign(item, { status: channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
     } catch (err) {
-      Object.assign(item, { status: err && err.code === 'NOT_FOUND' ? 'لم يتم الإرسال — لا يوجد واتساب' : 'لم يتم الإرسال', statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
+            const c = err && err.code;
+      const why = c === 'NOT_FOUND' ? ' — لا يوجد واتساب' : c === 'TIMEOUT' ? ' — انتهت المهلة' : c === 'SMS_FAILED' ? ' — فشل إرسال SMS' : '';
+      Object.assign(item, { status: 'لم يتم الإرسال' + why, statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
     }
     saveItemProgress(item); updateRow(i); updateStatsAndButtons();
     await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
