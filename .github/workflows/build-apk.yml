@@ -27,11 +27,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Add Android platform if missing and sync web assets
+      - name: Prepare Android project with custom files
         run: |
-          if [ ! -d "android/app" ]; then
-            npx cap add android
+          mkdir -p /tmp/custom_android/java
+          if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
+            cp android/app/src/main/AndroidManifest.xml /tmp/custom_android/AndroidManifest.xml
           fi
+          find android -name "*.java" -exec cp {} /tmp/custom_android/java/ \; 2>/dev/null || true
+
+          rm -rf android
+          npx cap add android
+
+          mkdir -p android/app/src/main/java/com/beneficiaries/sender
+          if [ -f "/tmp/custom_android/AndroidManifest.xml" ]; then
+            cp /tmp/custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          fi
+          if [ -f "/tmp/custom_android/java/MainActivity.java" ]; then
+            cp /tmp/custom_android/java/MainActivity.java android/app/src/main/java/com/beneficiaries/sender/MainActivity.java
+          fi
+          if [ -f "/tmp/custom_android/java/SmsSenderPlugin.java" ]; then
+            cp /tmp/custom_android/java/SmsSenderPlugin.java android/app/src/main/java/com/beneficiaries/sender/SmsSenderPlugin.java
+          fi
+
           npx cap copy android
 
       - name: Build Debug APK
