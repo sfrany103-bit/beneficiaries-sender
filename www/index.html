@@ -1,113 +1,162 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مرسل المستفيدين</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    * { box-sizing: border-box; font-family: Tahoma, Arial, sans-serif; }
-    body { margin: 0; padding: 14px; background: #f2f5f9; color: #1e293b; }
-    .top-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-    .tab-btn { flex: 1; padding: 11px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; background: #e2e8f0; color: #334155; cursor: pointer; }
-    .tab-btn.active { background: #0f172a; color: #fff; }
-    .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    h2 { margin: 0 0 12px; font-size: 18px; color: #0f172a; }
-    .hint { font-size: 13px; color: #475569; margin-bottom: 10px; line-height: 1.6; }
-    input[type="file"], input[type="number"], select, textarea {
-      width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-size: 14px;
-    }
-    input[type="file"] { border-style: dashed; }
-    textarea { min-height: 100px; resize: vertical; }
-    label { display: block; font-size: 13px; font-weight: bold; margin: 10px 0 6px; color: #1e293b; }
-    .channels { display: flex; gap: 10px; margin: 12px 0; }
-    .channel-btn { flex: 1; padding: 11px; border: 2px solid #cbd5e1; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; }
-    .channel-btn.active.sms { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
-    .channel-btn.active.wa { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
-    .actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    button.main-btn { flex: 1; min-width: 130px; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
-    #startBtn { background: #16a34a; color: #fff; }
-    #startBtn:disabled { background: #94a3b8; cursor: not-allowed; }
-    #pauseResumeBtn { background: #d97706; color: #fff; }
-    #pauseResumeBtn.paused { background: #2563eb; color: #fff; }
-    #pauseResumeBtn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
-    #retryFailedBtn { background: #dc2626; color: #fff; }
-    #retryFailedBtn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
-    #exportBtn { background: #0f172a; color: #fff; }
-    #exportBtn:disabled { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
-    .preview-btn { background: #0284c7; color: #fff; margin-top: 8px; }
-    .save-btn { background: #2563eb; color: #fff; }
-    .reset-btn { background: #64748b; color: #fff; }
-    .preview-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 10px; white-space: pre-line; font-size: 13px; color: #0f172a; }
-    .stats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 10px; background: #f8fafc; padding: 10px; border-radius: 8px; }
-    .badge-ok { color: #15803d; }
-    .badge-err { color: #b91c1c; }
-    .table-wrap { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; word-break: break-word; }
-    th { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
-    .row-active { outline: 2px solid #eab308; background: #fefce8 !important; }
-    .phone-cell.sent-ok { background: #dcfce7; color: #14532d; font-weight: bold; }
-    .phone-cell.sent-fail { background: #fee2e2; color: #7f1d1d; font-weight: bold; }
-    .phone-cell.sent-warn { background: #ffedd5; color: #7c2d12; font-weight: bold; }
-    .st-wait { color: #64748b; font-weight: bold; }
-    .st-ok { color: #16a34a; font-weight: bold; }
-    .st-err { color: #dc2626; font-weight: bold; }
-    .hidden { display: none; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>مرسل المستفيدين</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--ink:#0a2e2c;--a:#0f766e;--b:#34d3a4;--gold:#f5b84b;--bg:#edf5f3;--card:#fff;--text:#14302e;--mute:#64807d;--line:#dbe8e5;--soft:#f3f8f7;--field:#f9fcfb;--ok:#12a56b;--err:#e5484d;--warn:#e8892b}
+[data-theme=night]{--ink:#06121a;--a:#1fb6a6;--b:#5eead4;--gold:#fbbf24;--bg:#0b1620;--card:#12212e;--text:#e6f1f0;--mute:#8aa3a8;--line:#223644;--soft:#182b3a;--field:#162836}
+[data-theme=violet]{--ink:#2e1065;--a:#7c3aed;--b:#c084fc;--gold:#fbbf24;--bg:#f4f0fb;--text:#2a1a4a;--mute:#7a6b99;--line:#e5dcf5;--soft:#f6f2fd;--field:#faf7ff}
+[data-theme=ocean]{--ink:#0c2a4a;--a:#0369a1;--b:#38bdf8;--gold:#fbbf24;--bg:#eaf3fa;--text:#0f2942;--mute:#5f7d96;--line:#d6e6f2;--soft:#f1f7fc;--field:#f7fbfe}
+[data-theme=sunset]{--ink:#5a1a2b;--a:#e11d48;--b:#fb923c;--gold:#fde047;--bg:#fff3ee;--text:#3b1420;--mute:#946068;--line:#f6dcd3;--soft:#fff6f2;--field:#fffaf8}
+[data-theme=gold]{--ink:#2b2110;--a:#b7791f;--b:#f5b84b;--gold:#fde68a;--bg:#faf5e8;--text:#2f2410;--mute:#85744f;--line:#eadfc4;--soft:#fbf7ec;--field:#fefcf6}
+*{box-sizing:border-box;font-family:'Tajawal',Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+button,label,.sw{touch-action:manipulation}
+body{margin:0;background:var(--bg);color:var(--text);padding-bottom:40px;transition:background .4s,color .4s}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--ink),var(--a));color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 70px;border-radius:0 0 34px 34px}
+.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;filter:blur(40px);opacity:.45;animation:float 9s ease-in-out infinite;pointer-events:none}
+.hero::before{width:200px;height:200px;background:var(--b);top:-60px;left:-40px}
+.hero::after{width:170px;height:170px;background:var(--gold);bottom:-70px;right:-30px;animation-delay:-4s}
+@keyframes float{50%{transform:translate(24px,18px) scale(1.12)}}
+.hero h1{position:relative;margin:0;font-size:24px;font-weight:800}
+.hero p{position:relative;margin:4px 0 0;font-size:14px;opacity:.8}
+.wrap{max-width:720px;margin:-48px auto 0;padding:0 14px;position:relative;z-index:2}
+.tabs{display:flex;background:var(--card);border-radius:999px;padding:5px;box-shadow:0 8px 24px rgba(0,0,0,.15);margin-bottom:14px}
+.tab{flex:1;border:0;border-radius:999px;padding:12px;font-size:15px;font-weight:700;background:transparent;color:var(--mute);cursor:pointer;transition:.3s}
+.tab.active{background:linear-gradient(135deg,var(--a),var(--ink));color:#fff;box-shadow:0 6px 14px rgba(0,0,0,.25)}
+.card{background:var(--card);border-radius:26px;padding:18px;margin-bottom:14px;box-shadow:0 6px 22px rgba(0,0,0,.08);transition:background .4s}
+.card h2{margin:0 0 10px;font-size:18px;font-weight:800}
+.hint{font-size:14px;color:var(--mute);line-height:1.8;margin-bottom:10px}
+.drop{display:flex;flex-direction:column;align-items:center;gap:6px;padding:22px 12px;border:2px dashed var(--b);border-radius:22px;background:linear-gradient(180deg,var(--soft),var(--card));cursor:pointer;text-align:center}
+.drop:active{transform:scale(.98)}
+.drop .ic{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--b),var(--a));display:grid;place-items:center;color:#fff;font-size:24px;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px)}}
+.drop b{font-size:15px}.drop small{color:var(--mute);font-size:13px;word-break:break-all}
+.drop input{display:none}
+.seg{display:flex;gap:8px;margin:14px 0}
+.seg button{flex:1;padding:13px;border:2px solid var(--line);border-radius:999px;background:var(--card);font-weight:700;font-size:15px;color:var(--mute);cursor:pointer;transition:.3s}
+.seg button.active.sms{border-color:#2563eb;background:#eff5ff;color:#1d4ed8}
+.seg button.active.wa{border-color:var(--ok);background:#effcf6;color:#0c7a50}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.btn{position:relative;overflow:hidden;flex:1;min-width:130px;border:0;border-radius:999px;padding:14px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;transition:transform .15s,opacity .2s}
+.btn:active:not(:disabled){transform:scale(.96)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.b-go{background:linear-gradient(135deg,#19c37d,#0f9d6b);box-shadow:0 8px 18px rgba(18,165,107,.3)}
+.b-pause{background:linear-gradient(135deg,#f5a524,#e8892b)}
+.b-pause.paused{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.b-retry{background:linear-gradient(135deg,#f0595e,#d63c42)}
+.b-dark{background:linear-gradient(135deg,var(--a),var(--ink))}
+.b-main{background:linear-gradient(135deg,var(--b),var(--a))}
+.b-grey{background:linear-gradient(135deg,#8aa09d,#64807d)}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.5);transform:scale(0);animation:rip .6s ease-out;pointer-events:none}
+@keyframes rip{to{transform:scale(3.2);opacity:0}}
+.monitor{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:104px;height:104px;flex:none}
+.ring svg{transform:rotate(-90deg);width:100%;height:100%}
+.ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+.ring .bg{stroke:var(--line)}
+.ring .fg{stroke:url(#g);stroke-dasharray:276.5;stroke-dashoffset:276.5;transition:stroke-dashoffset .6s}
+.ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--a)}
+.chips{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{border-radius:16px;padding:8px 10px;background:var(--soft);font-size:13px;color:var(--mute)}
+.chip b{display:block;font-size:20px;font-weight:800;color:var(--text);transition:transform .3s}
+.chip.pop b{transform:scale(1.25)}
+.chip.ok b{color:var(--ok)}.chip.er b{color:var(--err)}.chip.wr b{color:var(--warn)}
+.cur{margin:14px 0 10px;padding:11px 14px;border-radius:16px;background:var(--soft);font-weight:700;font-size:14px}
+.tw{position:relative;max-height:390px;overflow-y:auto;border-radius:18px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right;word-break:break-word}
+th{background:var(--soft);position:sticky;top:0;z-index:1;font-weight:700;color:var(--mute)}
+tr.row-active{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{background:rgba(245,184,75,.25)}}
+.phone-cell{font-weight:700}
+.sent-ok{background:#e3f8ee;color:#0c6b45}.sent-fail{background:#fde8e9;color:#a32328}.sent-warn{background:#fff0de;color:#9a5410}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--soft);color:var(--mute);white-space:nowrap}
+.st-ok .pill{background:#d6f5e6;color:#0c7a50}.st-err .pill{background:#fcd9db;color:#b02a30}.st-warn .pill{background:#ffe5c7;color:#9a5410}
+label.l{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
+input[type=number],select,textarea{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:16px;background:var(--field);font-size:16px;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--b)}
+textarea{min-height:110px;resize:vertical}
+.preview{margin-top:10px;padding:12px;border-radius:16px;background:var(--soft);white-space:pre-line;font-size:14px}
+.themes{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+.sw{width:46px;height:46px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:.25s;box-shadow:0 4px 10px rgba(0,0,0,.2)}
+.sw.active{border-color:var(--text);transform:scale(1.15)}
+.swrow{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--soft);padding:12px 14px;border-radius:18px;margin-top:14px}
+.swrow b{font-size:15px}.swrow small{display:block;color:var(--mute);font-size:12px;line-height:1.6;margin-top:2px}
+.tg{position:relative;width:54px;height:30px;flex:none}
+.tg input{position:absolute;inset:0;opacity:0;margin:0;width:100%;height:100%;z-index:2;cursor:pointer}
+.tg i{position:absolute;inset:0;background:#b8c7c5;border-radius:999px;transition:.3s}
+.tg i::after{content:"";position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.3s}
+.tg input:checked+i{background:var(--ok)}
+.tg input:checked+i::after{transform:translateX(-24px)}
+.hidden{display:none!important}
+.sec{animation:in .3s}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,40px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:.4s;z-index:50;max-width:90%}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:40;padding:20px}
+.sheet{background:var(--card);border-radius:28px;padding:22px;width:100%;max-width:380px;text-align:center;animation:pop .3s}
+@keyframes pop{from{transform:scale(.85);opacity:0}}
+.sheet h3{margin:0 0 6px;font-size:18px}.sheet p{margin:0 0 16px;color:var(--mute);line-height:1.7;font-size:14px;white-space:pre-line}
+.sheet .btn{min-width:90px;padding:12px}
+.conf{position:fixed;top:-12px;width:10px;height:14px;border-radius:3px;z-index:60;pointer-events:none;animation:fall 2.4s ease-in forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg);opacity:.7}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-  <div class="top-tabs">
-    <button type="button" id="tabSendBtn" class="tab-btn active" onclick="switchTab('send')">الإرسال والمراقبة</button>
-    <button type="button" id="tabSettingsBtn" class="tab-btn" onclick="switchTab('settings')">الإعدادات والقالب</button>
+<div class="hero"><h1>مرسل المستفيدين</h1><p>أرسل رسائلك بسهولة وتابع النتائج مباشرة</p></div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button type="button" id="tabSendBtn" class="tab active" onclick="switchTab('send')">الإرسال والمراقبة</button>
+    <button type="button" id="tabSettingsBtn" class="tab" onclick="switchTab('settings')">الإعدادات والمظهر</button>
   </div>
 
-  <div id="sendSection">
+  <div id="sendSection" class="sec">
     <div class="card">
       <h2>إرسال رسائل المستفيدين</h2>
-      <div class="hint">
-        اختر ملف Excel (يبدأ من <b>السطر الثاني</b>): العمود <b>A</b> رقم الهاتف، العمود <b>B</b> اسم المستفيد، العمود <b>C</b> نص الرسالة (اختياري إذا صغت الرسالة في القالب).
+      <div class="hint">الأعمدة: <b>A</b> رقم الهاتف، <b>B</b> اسم المستفيد، <b>C</b> نص الرسالة (اختياري). الأرقام المكررة تُرسل كما هي بدون حذف.</div>
+      <label class="drop" for="excelFile"><span class="ic">⬆</span><b>اختر ملف Excel</b><small id="fileName">xlsx أو xls أو csv</small>
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" /></label>
+      <div class="seg">
+        <button type="button" id="smsBtn" class="sms active" onclick="setChannel('sms')">SMS</button>
+        <button type="button" id="waBtn" class="wa" onclick="setChannel('whatsapp')">واتساب</button>
       </div>
-      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" />
-
-      <div class="channels">
-        <button type="button" id="smsBtn" class="channel-btn sms active" onclick="setChannel('sms')">إرسال عبر SMS</button>
-        <button type="button" id="waBtn" class="channel-btn wa" onclick="setChannel('whatsapp')">إرسال عبر واتساب</button>
+      <div class="row">
+        <button type="button" id="startBtn" class="btn b-go" onclick="startBatch('all')" disabled>بدء الإرسال</button>
+        <button type="button" id="pauseResumeBtn" class="btn b-pause" onclick="togglePauseResume()" disabled>إيقاف مؤقت</button>
       </div>
-
-      <div class="actions">
-        <button type="button" id="startBtn" class="main-btn" onclick="startBatch('all')" disabled>بدء الإرسال التلقائي</button>
-        <button type="button" id="pauseResumeBtn" class="main-btn" onclick="togglePauseResume()" disabled>إيقاف مؤقت</button>
+      <div class="row">
+        <button type="button" id="retryFailedBtn" class="btn b-retry" onclick="startBatch('failed')" disabled>إعادة إرسال الفاشلين</button>
+        <button type="button" id="exportBtn" class="btn b-dark" onclick="exportReportExcel()" disabled>تحميل النتائج</button>
       </div>
-
-      <div class="actions">
-        <button type="button" id="retryFailedBtn" class="main-btn" onclick="startBatch('failed')" disabled>إعادة إرسال الفاشلين</button>
-        <button type="button" id="exportBtn" class="main-btn" onclick="exportReportExcel()" disabled>تحميل ملف النتائج (.xlsx)</button>
-      </div>
+      <div class="hint" style="margin:10px 4px 0;font-size:12px">الإيقاف المؤقت يسري بعد انتهاء الرسالة الحالية.</div>
     </div>
 
     <div class="card">
-      <h2>شاشة المراقبة المباشرة</h2>
-      <div class="stats">
-        <span id="progressText">التقدم: 0 / 0</span>
-        <span class="badge-ok" id="okCountText">تم الإرسال: 0</span>
-        <span class="badge-err" id="failCountText">لم يُرسل: 0</span>
+      <h2>المراقبة المباشرة</h2>
+      <div class="monitor">
+        <div class="ring">
+          <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--b)"/><stop offset="1" style="stop-color:var(--gold)"/></linearGradient></defs>
+            <circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" id="ringFg" cx="50" cy="50" r="44"/></svg>
+          <div class="pct" id="pctText">0%</div>
+        </div>
+        <div class="chips">
+          <div class="chip">الكل<b id="totalNum">0</b></div>
+          <div class="chip ok" id="cOk">تم الإرسال<b id="okNum">0</b></div>
+          <div class="chip er" id="cFail">لم يُرسل<b id="failNum">0</b></div>
+          <div class="chip wr" id="cSkip">تم تخطيه<b id="skipNum">0</b></div>
+        </div>
       </div>
-      <div class="hint" id="currentText" style="font-weight:bold;color:#0f172a;">الحالة: بانتظار تحميل ملف الإكسل</div>
-
-      <div class="table-wrap">
+      <div class="cur" id="currentText" aria-live="polite">الحالة: بانتظار تحميل ملف الإكسل</div>
+      <div class="tw" id="tw">
         <table>
-          <thead>
-            <tr>
-              <th>السطر</th>
-              <th>المستفيد (B)</th>
-              <th>الهاتف (A)</th>
-              <th>الحالة</th>
-            </tr>
-          </thead>
-          <tbody id="monitorBody">
-            <tr><td colspan="4" style="text-align:center;color:#64748b;">لم يتم تحميل أي بيانات بعد</td></tr>
-          </tbody>
+          <thead><tr><th>السطر</th><th>المستفيد</th><th>الهاتف</th><th>الحالة</th></tr></thead>
+          <tbody id="monitorBody"><tr><td colspan="4" style="text-align:center;color:var(--mute)">لم يتم تحميل أي بيانات بعد</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -115,63 +164,438 @@
 
   <div id="settingsSection" class="hidden">
     <div class="card">
-      <h2>إعدادات نص الرسالة والتشغيل</h2>
-      <div class="hint">
-        الرموز المتاحة في القالب:<br>
-        <b>{name}</b> = اسم المستفيد (العمود B)<br>
-        <b>{message}</b> = نص الرسالة من العمود C (وإذا كان العمود C فارغاً يُحذف الرمز تلقائياً ليبقى ترتيبك كما كتبته).
+      <h2>المظهر</h2>
+      <div class="themes" id="themes"></div>
+    </div>
+
+    <div class="card">
+      <h2>الإرسال</h2>
+      <div class="swrow">
+        <div><b>الإرسال التلقائي الكامل</b>
+          <small>SMS: يُرسل مباشرة إذا الإضافة SmsSender موجودة. واتساب: يُرسل مباشرة إذا الإضافة WaAutoSender موجودة، وإلا يفتح المحادثة ويكمل بدون تأكيد (تُسجّل "غير مؤكد").</small></div>
+        <span class="tg"><input type="checkbox" id="autoToggle" /><i></i></span>
       </div>
 
-      <label for="templateInput">قالب صياغة الرسالة:</label>
-      <textarea id="templateInput"></textarea>
-
-      <button type="button" class="main-btn preview-btn" onclick="previewMessageNow()">معاينة الرسالة</button>
-      <div id="previewBox" class="preview-box hidden"></div>
-
-      <label for="waAppSelect">تطبيق الواتساب المستخدم:</label>
+      <label class="l" for="waAppSelect">تطبيق الواتساب</label>
       <select id="waAppSelect">
         <option value="official">واتساب الرسمي</option>
-        <option value="business">واتساب الأعمال (WhatsApp Business)</option>
+        <option value="business">واتساب الأعمال (Business)</option>
       </select>
-
-      <label for="startRowInput">رقم سطر البداية في الإكسل (الافتراضي 2):</label>
-      <input type="number" id="startRowInput" min="2" value="2" />
-
-      <label for="delaySecondsInput">الفاصل الزمني بين الرسائل بالثواني (من 1 إلى 60 ثانية):</label>
+      <label class="l" for="countryInput">رمز الدولة (اختياري، مثال 963 لسوريا)</label>
+      <input type="number" id="countryInput" placeholder="يُضاف للأرقام التي تبدأ بصفر" />
+      <label class="l" for="startRowInput">سطر البداية في الإكسل</label>
+      <input type="number" id="startRowInput" min="1" value="2" />
+      <label class="l" for="delaySecondsInput">الفاصل بين الرسائل بالثواني (1 إلى 60)</label>
       <input type="number" id="delaySecondsInput" min="1" max="60" value="2" />
+      <div class="hint" style="margin-top:6px;font-size:12px">لواتساب يُفضّل 5 ثوانٍ فأكثر لتقليل خطر الحظر.</div>
+    </div>
 
-      <div class="actions" style="margin-top:16px;">
-        <button type="button" class="main-btn save-btn" onclick="saveSettings()">حفظ وتحديث</button>
-        <button type="button" class="main-btn reset-btn" onclick="resetSettings()">استعادة الافتراضي</button>
+    <div class="card">
+      <h2>قالب الرسالة</h2>
+      <div class="hint"><b>{name}</b> = اسم المستفيد (B) — <b>{message}</b> = نص العمود C (يُحذف إذا فارغ).</div>
+      <textarea id="templateInput"></textarea>
+      <div class="row"><button type="button" class="btn b-main" onclick="previewMessageNow()">معاينة الرسالة</button></div>
+      <div id="previewBox" class="preview hidden"></div>
+      <div class="row" style="margin-top:16px">
+        <button type="button" class="btn b-dark" onclick="saveSettings()">حفظ</button>
+        <button type="button" class="btn b-grey" onclick="resetSettings()">الافتراضي</button>
       </div>
-      <div id="settingsMsg" class="hint" style="margin-top:10px;color:#16a34a;font-weight:bold;"></div>
+      <div class="row"><button type="button" class="btn b-retry" onclick="clearProgress()">مسح التقدم المحفوظ</button></div>
     </div>
   </div>
+</div>
 
-  <script>
-    const STORAGE_KEY = 'beneficiaries_sender_settings_v2';
-    const DEFAULT_SETTINGS = {
-      template: 'مرحباً {name}\n{message}',
-      waApp: 'official',
-      startRow: 2,
-      delaySeconds: 2
+<div class="toast" id="toast" role="status"></div>
+<div class="modal hidden" id="modal">
+  <div class="sheet"><h3 id="mTitle"></h3><p id="mText"></p>
+    <div class="row">
+      <button type="button" class="btn b-go" data-r="ok">تم</button>
+      <button type="button" class="btn b-retry" data-r="no">لم يُرسل</button>
+      <button type="button" class="btn b-grey" data-r="skip">تخطي</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'beneficiaries_sender_settings_v2';
+const PROGRESS_KEY = 'beneficiaries_sender_progress_v1';
+const DEFAULT_SETTINGS = { template: 'مرحباً {name}\n{message}', waApp: 'official', startRow: 2, delaySeconds: 2, countryCode: '', theme: 'green', auto: false };
+const THEMES = [
+  { id: 'green', name: 'أخضر', c: ['#34d3a4', '#0f766e'] }, { id: 'night', name: 'ليلي', c: ['#5eead4', '#06121a'] },
+  { id: 'violet', name: 'بنفسجي', c: ['#c084fc', '#7c3aed'] }, { id: 'ocean', name: 'محيطي', c: ['#38bdf8', '#0369a1'] },
+  { id: 'sunset', name: 'غروب', c: ['#fb923c', '#e11d48'] }, { id: 'gold', name: 'ذهبي', c: ['#f5b84b', '#b7791f'] }
+];
+const $ = id => document.getElementById(id);
+
+let appSettings = loadSettings();
+let rawExcelRows = [], rowsData = [], fileLabel = '', progressMap = {}, activeIdx = -1, wakeLock = null;
+let channel = 'sms', isRunning = false, isPaused = false;
+let pauseResolver = null, returnResolver = null, leftForExternalApp = false;
+
+function safeGet(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
+function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (_) {} }
+const persistSettings = () => safeSet(STORAGE_KEY, JSON.stringify(appSettings));
+
+function loadSettings() {
+  try {
+    const s = JSON.parse(safeGet(STORAGE_KEY) || 'null') || {};
+    const sec = Number(s.delaySeconds), row = Number(s.startRow);
+    return {
+      template: typeof s.template === 'string' ? s.template : DEFAULT_SETTINGS.template,
+      waApp: s.waApp === 'business' ? 'business' : 'official',
+      startRow: Number.isFinite(row) && row >= 1 ? Math.floor(row) : 2,
+      delaySeconds: Number.isFinite(sec) && sec >= 1 && sec <= 60 ? Math.round(sec) : 2,
+      countryCode: String(s.countryCode || '').replace(/\D/g, ''),
+      theme: THEMES.some(t => t.id === s.theme) ? s.theme : 'green',
+      auto: s.auto === true
     };
+  } catch (_) { return { ...DEFAULT_SETTINGS }; }
+}
 
-    let appSettings = loadSettings();
-    let rawExcelRows = [];
-    let rowsData = [];
-    let channel = 'sms';
-    let isRunning = false;
-    let isPaused = false;
-    let pauseResolver = null;
-    let returnFromExternalResolver = null;
-    let leftForExternalApp = false;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+}
 
-    function loadSettings() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-        const rawSec = saved && Number(saved.delaySeconds);
-        return {
-          template: saved && typeof saved.template === 'string' ? saved.template : DEFAULT_SETTINGS.template,
-          waApp: saved && saved.waApp === 'business' ? 'business' : 'official',
-          startRow: saved && Number(saved.startRow) >= 2 ? Number(saved.startRow) : DEFAULT_SETTINGS.startRow,
+/* ---- المظهر ---- */
+function applyTheme() {
+  document.documentElement.dataset.theme = appSettings.theme;
+  document.querySelectorAll('.sw').forEach(s => s.classList.toggle('active', s.dataset.id === appSettings.theme));
+}
+function buildThemes() {
+  $('themes').innerHTML = THEMES.map(t =>
+    `<button type="button" class="sw" data-id="${t.id}" title="${t.name}" aria-label="${t.name}" style="background:linear-gradient(135deg,${t.c[0]},${t.c[1]})"></button>`).join('');
+  $('themes').addEventListener('click', e => {
+    const b = e.target.closest('.sw'); if (!b) return;
+    appSettings.theme = b.dataset.id; persistSettings(); applyTheme(); toast('تم تغيير المظهر');
+  });
+}
+$('autoToggle').addEventListener('change', e => {
+  appSettings.auto = e.target.checked; persistSettings();
+  toast(appSettings.auto ? 'تم تفعيل الإرسال التلقائي' : 'تم إيقاف الإرسال التلقائي');
+});
+
+/* ---- تأثير الضغط ---- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.btn'); if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), s = document.createElement('span');
+  s.className = 'rip'; s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+  b.appendChild(s); setTimeout(() => s.remove(), 600);
+});
+
+function askConfirm(title, text) {
+  return new Promise(resolve => {
+    $('mTitle').textContent = title; $('mText').textContent = text;
+    const m = $('modal'); m.classList.remove('hidden');
+    const h = e => {
+      const r = e.target.closest('[data-r]'); if (!r) return;
+      m.removeEventListener('click', h); m.classList.add('hidden'); resolve(r.dataset.r);
+    };
+    m.addEventListener('click', h);
+  });
+}
+
+function confetti() {
+  const cols = ['#34d3a4', '#f5b84b', '#0f766e', '#f0595e', '#3b82f6'];
+  for (let i = 0; i < 32; i++) {
+    const c = document.createElement('div'); c.className = 'conf';
+    c.style.left = Math.random() * 100 + 'vw'; c.style.background = cols[i % 5];
+    c.style.animationDelay = Math.random() * .6 + 's'; c.style.animationDuration = 1.8 + Math.random() * 1.4 + 's';
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4000);
+  }
+}
+
+function populateSettingsForm() {
+  $('templateInput').value = appSettings.template;
+  $('waAppSelect').value = appSettings.waApp;
+  $('startRowInput').value = appSettings.startRow;
+  $('delaySecondsInput').value = appSettings.delaySeconds;
+  $('countryInput').value = appSettings.countryCode;
+  $('autoToggle').checked = appSettings.auto;
+  $('previewBox').classList.add('hidden'); $('previewBox').textContent = '';
+}
+
+function formatTemplateWithValues(tpl, beneficiary, colC) {
+  const name = String(beneficiary ?? '').trim(), msg = String(colC ?? '').trim();
+  let r = String(tpl ?? '').replace(/\{name\}/g, name);
+  r = msg ? r.replace(/\{message\}/g, msg) : r.replace(/\n?\{message\}\n?/g, '\n');
+  return r.replace(/\n{3,}/g, '\n\n').trim();
+}
+const buildFinalMessage = (b, c) => formatTemplateWithValues(appSettings.template, b, c);
+
+function previewMessageNow() {
+  const s = rowsData[0];
+  const t = formatTemplateWithValues($('templateInput').value, s ? s.beneficiary : 'الاسم من العمود B', s ? s.rawMessage : '');
+  const box = $('previewBox'); box.textContent = t || '(القالب فارغ)'; box.classList.remove('hidden');
+}
+
+function saveSettings() {
+  const clamp = (v, a, b, d) => { v = parseInt(v, 10); return Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d; };
+  appSettings = {
+    ...appSettings,
+    template: $('templateInput').value,
+    waApp: $('waAppSelect').value === 'business' ? 'business' : 'official',
+    startRow: clamp($('startRowInput').value, 1, 100000, 2),
+    delaySeconds: clamp($('delaySecondsInput').value, 1, 60, 2),
+    countryCode: $('countryInput').value.replace(/\D/g, ''),
+    auto: $('autoToggle').checked
+  };
+  persistSettings(); populateSettingsForm();
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تم حفظ الإعدادات');
+}
+
+function resetSettings() {
+  appSettings = { ...DEFAULT_SETTINGS };
+  persistSettings(); populateSettingsForm(); applyTheme();
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تمت استعادة الإعدادات الافتراضية');
+}
+
+function switchTab(tab) {
+  const isSend = tab === 'send';
+  $('sendSection').classList.toggle('hidden', !isSend);
+  $('settingsSection').classList.toggle('hidden', isSend);
+  $('tabSendBtn').classList.toggle('active', isSend);
+  $('tabSettingsBtn').classList.toggle('active', !isSend);
+  if (!isSend) populateSettingsForm();
+  window.scrollTo({ top: 0 });
+}
+
+function setChannel(ch) {
+  channel = ch;
+  $('smsBtn').classList.toggle('active', ch === 'sms');
+  $('waBtn').classList.toggle('active', ch === 'whatsapp');
+}
+
+/* ---- الأرقام ---- */
+function cleanPhone(raw) {
+  let p = String(raw ?? '').replace(/[^\d+]/g, '');
+  if (p.startsWith('00')) p = '+' + p.slice(2);
+  if (appSettings.countryCode && p.startsWith('0')) p = '+' + appSettings.countryCode + p.slice(1);
+  return p;
+}
+const isValidPhone = raw => cleanPhone(raw).replace(/\D/g, '').length >= 6;
+
+/* ---- حفظ التقدم ---- */
+const progId = it => `${fileLabel}|${it.excelRow}|${it.phone}|${it.beneficiary}`;
+function loadProgress() { try { progressMap = JSON.parse(safeGet(PROGRESS_KEY) || '{}') || {}; } catch (_) { progressMap = {}; } }
+function saveItemProgress(it) {
+  progressMap[progId(it)] = { s: it.status, sc: it.statusClass, pc: it.phoneClass, f: it.sentFlag, ch: it.channelUsed, sk: !!it.skipped };
+  safeSet(PROGRESS_KEY, JSON.stringify(progressMap));
+}
+function clearProgress() {
+  progressMap = {}; safeSet(PROGRESS_KEY, '{}');
+  if (!isRunning && rawExcelRows.length) rebuildRowsFromRaw();
+  toast('تم مسح التقدم المحفوظ');
+}
+
+function rebuildRowsFromRaw() {
+  if (!rawExcelRows.length) return;
+  loadProgress();
+  const startIdx = Math.max(0, appSettings.startRow - 1);
+  rowsData = []; activeIdx = -1;
+  let restored = 0;
+  for (let i = startIdx; i < rawExcelRows.length; i++) {
+    const r = rawExcelRows[i] || [];
+    const phone = String(r[0] ?? '').trim(), beneficiary = String(r[1] ?? '').trim(), rawMessage = String(r[2] ?? '').trim();
+    if (!(phone || beneficiary || rawMessage)) continue;
+    const valid = isValidPhone(phone);
+    const item = {
+      excelRow: i + 1, phone, beneficiary, rawMessage, finalMessage: '', channelUsed: '',
+      status: valid ? 'بانتظار الإرسال' : 'رقم غير صالح', statusClass: valid ? '' : 'st-warn',
+      phoneClass: valid ? '' : 'sent-warn', sentFlag: valid ? 'بانتظار الإرسال' : 'رقم غير صالح',
+      skipped: !valid, invalid: !valid
+    };
+    const sv = progressMap[progId(item)];
+    if (valid && sv) {
+      Object.assign(item, { status: sv.s, statusClass: sv.sc, phoneClass: sv.pc, sentFlag: sv.f, channelUsed: sv.ch || '', skipped: !!sv.sk });
+      restored++;
+    }
+    rowsData.push(item);
+  }
+  renderTable(); updateStatsAndButtons();
+  $('currentText').textContent = `تم تحميل ${rowsData.length} سطر` + (restored ? ` — تمت استعادة ${restored} نتيجة سابقة` : '');
+}
+
+$('excelFile').addEventListener('change', function (e) {
+  const file = e.target.files[0]; if (!file) return;
+  fileLabel = file.name; $('fileName').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    try {
+      const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+      rawExcelRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      rebuildRowsFromRaw(); toast('تم تحميل الملف');
+    } catch (_) { toast('تعذّر قراءة الملف، تأكد من صيغته'); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function bump(id) { const el = $(id); el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 300); }
+
+function updateStatsAndButtons() {
+  const total = rowsData.length;
+  let ok = 0, fail = 0, skip = 0;
+  for (const x of rowsData) { if (x.phoneClass === 'sent-ok') ok++; else if (x.phoneClass === 'sent-fail') fail++; else if (x.phoneClass === 'sent-warn') skip++; }
+  const pct = total ? Math.round((ok + fail + skip) / total * 100) : 0;
+  if ($('okNum').textContent != ok) bump('cOk');
+  if ($('failNum').textContent != fail) bump('cFail');
+  if ($('skipNum').textContent != skip) bump('cSkip');
+  $('totalNum').textContent = total; $('okNum').textContent = ok; $('failNum').textContent = fail; $('skipNum').textContent = skip;
+  $('pctText').textContent = pct + '%';
+  $('ringFg').style.strokeDashoffset = 276.5 * (1 - pct / 100);
+  $('startBtn').disabled = isRunning || total === 0;
+  $('retryFailedBtn').disabled = isRunning || fail === 0;
+  $('exportBtn').disabled = total === 0;
+  const pb = $('pauseResumeBtn'); pb.disabled = !isRunning;
+  if (!isRunning) isPaused = false;
+  pb.textContent = isPaused ? 'استئناف' : 'إيقاف مؤقت';
+  pb.classList.toggle('paused', isPaused);
+}
+
+/* ---- الجدول (تحديث الصف المتغير فقط) ---- */
+function rowHtml(it, i) {
+  return `<tr id="row-${i}" class="${i === activeIdx ? 'row-active' : ''}"><td>${it.excelRow}</td><td>${escapeHtml(it.beneficiary)}</td>` +
+    `<td dir="ltr" class="phone-cell ${it.phoneClass}">${escapeHtml(it.phone || 'بدون رقم')}</td>` +
+    `<td class="${it.statusClass}"><span class="pill">${escapeHtml(it.status)}</span></td></tr>`;
+}
+function renderTable() {
+  const tb = $('monitorBody');
+  tb.innerHTML = rowsData.length ? rowsData.map(rowHtml).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--mute)">لا توجد صفوف صالحة</td></tr>';
+}
+function updateRow(i) { const el = $('row-' + i); if (el) el.outerHTML = rowHtml(rowsData[i], i); }
+function setActive(i) {
+  const prev = activeIdx; activeIdx = i;
+  if (prev >= 0) updateRow(prev);
+  if (i >= 0) {
+    updateRow(i);
+    const el = $('row-' + i), tw = $('tw');
+    if (el) tw.scrollTo({ top: el.offsetTop - tw.clientHeight / 2 + el.clientHeight / 2, behavior: 'smooth' });
+  }
+}
+
+function togglePauseResume() {
+  if (!isRunning) return;
+  isPaused = !isPaused; updateStatsAndButtons();
+  if (isPaused) $('currentText').textContent = 'الحالة: سيتوقف بعد الرسالة الحالية — اضغط استئناف للمتابعة';
+  else {
+    $('currentText').textContent = 'الحالة: تم الاستئناف...';
+    if (pauseResolver) { const f = pauseResolver; pauseResolver = null; f(); }
+  }
+}
+async function waitIfPaused() { if (isPaused) await new Promise(r => { pauseResolver = r; }); }
+
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { leftForExternalApp = true; }
+  else if (leftForExternalApp) {
+    leftForExternalApp = false;
+    if (returnResolver) { const f = returnResolver; returnResolver = null; setTimeout(f, 250); }
+  }
+});
+
+function waitUntilReturnedToApp(timeoutMs) {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = v => { if (done) return; done = true; clearTimeout(timer); returnResolver = null; resolve(v); };
+    returnResolver = () => finish(true);
+    const timer = setTimeout(() => finish(!leftForExternalApp), timeoutMs);
+  });
+}
+
+/* يرجع 'ok' أو 'opened' أو 'skip' أو يرمي خطأ */
+async function sendSingleItem(item) {
+  const phone = cleanPhone(item.phone);
+  const text = buildFinalMessage(item.beneficiary, item.rawMessage);
+  item.finalMessage = text;
+  item.channelUsed = channel === 'sms' ? 'SMS' : (appSettings.waApp === 'business' ? 'واتساب الأعمال' : 'واتساب الرسمي');
+  if (!isValidPhone(phone) || !text) throw new Error('بيانات ناقصة');
+  const auto = appSettings.auto, who = `السطر ${item.excelRow} (${item.beneficiary || phone})`;
+  const P = window.Capacitor && window.Capacitor.Plugins;
+  let ans;
+
+  if (channel === 'sms') {
+    const sms = P && P.SmsSender;
+    if (sms && typeof sms.sendSms === 'function') { await sms.sendSms({ phone, message: text }); return 'ok'; }
+    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent) ? '&' : '?';
+    leftForExternalApp = false;
+    window.location.href = `sms:${phone}${sep}body=${encodeURIComponent(text)}`;
+    await waitUntilReturnedToApp(auto ? 8000 : 20000);
+    if (auto) return 'opened';
+    ans = await askConfirm('رسالة SMS', `${who}\nهل تم إرسال الرسالة؟`);
+  } else {
+    const num = phone.replace(/^\+/, ''), enc = encodeURIComponent(text);
+    const wa = P && P.WaAutoSender;
+    if (auto && wa && typeof wa.send === 'function') {
+      await wa.send({ phone: num, message: text, business: appSettings.waApp === 'business' }); return 'ok';
+    }
+    leftForExternalApp = false;
+    if (appSettings.waApp === 'business' && /Android/i.test(navigator.userAgent)) {
+      window.location.href = `intent://send?phone=${num}&text=${enc}#Intent;scheme=whatsapp;package=com.whatsapp.w4b;end`;
+    } else {
+      window.location.href = `https://wa.me/${num}?text=${enc}`;
+    }
+    await waitUntilReturnedToApp(auto ? 12000 : 30000);
+    if (auto) return 'opened';
+    ans = await askConfirm('واتساب', `${who}\nهل ضغطت إرسال وتم إرسال الرسالة؟`);
+  }
+  if (ans === 'no') throw new Error('لم يتم تأكيد الإرسال');
+  return ans;
+}
+
+async function startBatch(mode) {
+  if (isRunning || !rowsData.length) return;
+  isRunning = true; isPaused = false; updateStatsAndButtons();
+  try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (_) {}
+
+  for (let i = 0; i < rowsData.length; i++) {
+    await waitIfPaused();
+    const item = rowsData[i];
+    if (item.invalid) continue;
+    const go = mode === 'failed' ? item.phoneClass === 'sent-fail' : (item.phoneClass !== 'sent-ok' && !item.skipped);
+    if (!go) continue;
+
+    item.status = 'جاري الإرسال...'; item.statusClass = ''; item.skipped = false;
+    setActive(i);
+    $('currentText').textContent = `السطر ${item.excelRow}: ${item.beneficiary || item.phone}`;
+
+    try {
+      const res = await sendSingleItem(item);
+      if (res === 'skip') Object.assign(item, { status: 'تم التخطي', statusClass: 'st-warn', phoneClass: 'sent-warn', sentFlag: 'تم التخطي', skipped: true });
+      else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
+      else Object.assign(item, { status: channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
+    } catch (_) {
+      Object.assign(item, { status: 'لم يتم الإرسال', statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
+    }
+    saveItemProgress(item); updateRow(i); updateStatsAndButtons();
+    await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
+    await waitIfPaused();
+  }
+
+  setActive(-1);
+  try { if (wakeLock) { await wakeLock.release(); wakeLock = null; } } catch (_) {}
+  isRunning = false; isPaused = false; updateStatsAndButtons();
+  $('currentText').textContent = 'الحالة: انتهى الإرسال — راجع النتائج أو حمّل الملف.';
+  if (rowsData.some(x => x.phoneClass === 'sent-ok')) { confetti(); toast('انتهى الإرسال'); }
+}
+
+function exportReportExcel() {
+  if (!rowsData.length) return;
+  const rows = rowsData.map(it => ({
+    'رقم السطر': it.excelRow, 'رقم الهاتف': it.phone, 'اسم المستفيد': it.beneficiary,
+    'الرسالة النهائية': it.finalMessage || buildFinalMessage(it.beneficiary, it.rawMessage),
+    'نتيجة الإرسال': it.sentFlag, 'التفاصيل': it.status, 'القناة': it.channelUsed || '-'
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'نتائج الإرسال');
+  XLSX.writeFile(wb, 'نتائج_إرسال_المستفيدين.xlsx');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+buildThemes(); applyTheme(); populateSettingsForm();
+</script>
+</body>
+</html>
