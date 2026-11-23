@@ -80,7 +80,7 @@ public class SenderPlugin extends Plugin {
         boolean auto = Boolean.TRUE.equals(call.getBoolean("auto", false));
         if (phone == null || message == null) { call.reject("missing data"); return; }
 
-        if (auto && !isServiceEnabled()) {
+        if (!isServiceEnabled()) {
             call.reject("service off", "NO_SERVICE");
             return;
         }
@@ -90,38 +90,42 @@ public class SenderPlugin extends Plugin {
             i.setPackage(business ? "com.whatsapp.w4b" : "com.whatsapp");
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-            if (auto) {
-                WhatsAppAccessibilityService.pendingCall = call;
-                WhatsAppAccessibilityService.armed = true;
-                call.setKeepAlive(true);
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    if (WhatsAppAccessibilityService.pendingCall == call) {
-                        WhatsAppAccessibilityService.armed = false;
-                        WhatsAppAccessibilityService.pendingCall = null;
-                        try {
-                            Intent back = getContext().getPackageManager()
-                                .getLaunchIntentForPackage(getContext().getPackageName());
-                            if (back != null) {
-                                back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                                    | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-                                getContext().startActivity(back);
-                            }
-                        } catch (Exception ignored) {}
-                        call.reject("timeout", "TIMEOUT");
-                    }
-                }, 12000);
-            }
+            WhatsAppAccessibilityService.pendingCall = call;
+            WhatsAppAccessibilityService.manualMode = !auto;
+            WhatsAppAccessibilityService.armed = true;
+            call.setKeepAlive(true);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (WhatsAppAccessibilityService.pendingCall == call) {
+                    WhatsAppAccessibilityService.armed = false;
+                    WhatsAppAccessibilityService.manualMode = false;
+                    WhatsAppAccessibilityService.pendingCall = null;
+                    try {
+                        Intent back = getContext().getPackageManager()
+                            .getLaunchIntentForPackage(getContext().getPackageName());
+                        if (back != null) {
+                            back.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                            getContext().startActivity(back);
+                        }
+                    } catch (Exception ignored) {}
+                    call.reject("timeout", "TIMEOUT");
+                }
+            }, auto ? 12000 : 120000);
+
             getContext().startActivity(i);
-            if (!auto) call.resolve();
         } catch (ActivityNotFoundException e) {
-            WhatsAppAccessibilityService.armed = false;
-            WhatsAppAccessibilityService.pendingCall = null;
+            resetService();
             call.reject("whatsapp not found", "NOT_FOUND");
         } catch (Exception e) {
-            WhatsAppAccessibilityService.armed = false;
-            WhatsAppAccessibilityService.pendingCall = null;
+            resetService();
             call.reject(String.valueOf(e.getMessage()));
         }
+    }
+
+    private void resetService() {
+        WhatsAppAccessibilityService.armed = false;
+        WhatsAppAccessibilityService.manualMode = false;
+        WhatsAppAccessibilityService.pendingCall = null;
     }
 
     @PluginMethod
