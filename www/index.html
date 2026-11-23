@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إرسال الرسائل</title>
+  <style>
+    body { font-family: Tahoma, Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .box { max-width: 420px; margin: auto; background: #fff; padding: 18px; border-radius: 10px; }
+    input, textarea, button { width: 100%; box-sizing: border-box; margin-bottom: 12px; padding: 10px; font-size: 15px; }
+    textarea { min-height: 110px; }
+    button { background: #1976d2; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    #status { font-weight: bold; color: #222; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h3>إرسال رسالة SMS</h3>
+    <input id="phone" type="tel" placeholder="أدخل رقم الهاتف" />
+    <textarea id="msg" placeholder="اكتب نص الرسالة"></textarea>
+    <button id="sendBtn" type="button">إرسال الرسالة</button>
+    <p id="status"></p>
+  </div>
+
+  <script>
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      const number = document.getElementById('phone').value.trim();
+      const text = document.getElementById('msg').value.trim();
+
+      if (!number || !text) {
+        status.textContent = 'يرجى إدخال رقم الهاتف ونص الرسالة.';
+        return;
+      }
+
+      const SmsSender = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SmsSender;
+      if (!SmsSender) {
+        status.textContent = 'إضافة SmsSender غير متاحة في هذه البيئة.';
+        return;
+      }
+
+      try {
+        status.textContent = 'جاري التحقق من الصلاحيات...';
+        const perm = await SmsSender.checkPermissions();
+        if (perm.sms !== 'granted') {
+          const req = await SmsSender.requestPermissions();
+          if (req.sms !== 'granted') {
+            status.textContent = 'تم رفض صلاحية إرسال الرسائل SMS.';
+            return;
+          }
+        }
+
+        status.textContent = 'جاري الإرسال...';
+        await SmsSender.send({ number, text });
+        status.textContent = 'تم إرسال الرسالة بنجاح.';
+      } catch (e) {
+        status.textContent = 'حدث خطأ: ' + (e && e.message ? e.message : String(e));
+      }
+    });
+  </script>
+</body>
+</html>
