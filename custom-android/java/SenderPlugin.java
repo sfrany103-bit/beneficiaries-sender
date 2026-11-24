@@ -74,18 +74,19 @@ public class SenderPlugin extends Plugin {
             final int[] done = {0};
             final boolean[] failed = {false};
             final boolean[] finished = {false};
+                        final int[] errCode = {0};
             final BroadcastReceiver[] holder = new BroadcastReceiver[1];
 
             holder[0] = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context c, Intent in) {
                     if (finished[0]) return;
-                    if (getResultCode() != Activity.RESULT_OK) failed[0] = true;
+                                        if (getResultCode() != Activity.RESULT_OK) { failed[0] = true; errCode[0] = getResultCode(); }
                     done[0]++;
                     if (done[0] >= total) {
                         finished[0] = true;
                         try { ctx.unregisterReceiver(holder[0]); } catch (Exception ignored) {}
-                        if (failed[0]) call.reject("sms failed", "SMS_FAILED");
+                                                if (failed[0]) call.reject(String.valueOf(errCode[0]), "SMS_FAILED");
                         else call.resolve();
                     }
                 }
