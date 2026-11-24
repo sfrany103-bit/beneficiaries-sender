@@ -55,9 +55,12 @@ public class SenderPlugin extends Plugin {
         if (phone == null || message == null) { call.reject("missing data"); return; }
         final Context ctx = getContext();
         try {
-            SmsManager sm = Build.VERSION.SDK_INT >= 31
-                ? ctx.getSystemService(SmsManager.class)
-                : SmsManager.getDefault();
+                        SmsManager sm;
+            try {
+                sm = SmsManager.getDefault();
+            } catch (Exception e0) {
+                sm = ctx.getSystemService(SmsManager.class);
+            }
             ArrayList<String> parts = sm.divideMessage(message);
             final int total = parts.size();
             final String action = "com.beneficiaries.sender.SMS_SENT_" + System.nanoTime();
