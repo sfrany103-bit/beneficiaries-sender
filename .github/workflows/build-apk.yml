@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Add file save and share plugins
+        run: |
+          MAJOR=$(node -p "require('@capacitor/core/package.json').version.split('.')[0]")
+          npm install "@capacitor/filesystem@^$MAJOR" "@capacitor/share@^$MAJOR"
+
       - name: Bundle XLSX library locally
         run: |
           npm install xlsx@0.18.5 --no-save
@@ -51,8 +56,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Sign APK with fixed key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          $BT/apksigner sign \
+            --ks "$RUNNER_TEMP/release.keystore" \
+            --ks-key-alias sender \
+            --ks-pass env:KEYSTORE_PASSWORD \
+            --key-pass env:KEYSTORE_PASSWORD \
+            --out beneficiaries-sender.apk \
+            android/app/build/outputs/apk/debug/app-debug.apk
+          $BT/apksigner verify --print-certs beneficiaries-sender.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: beneficiaries-sender-apk
+          path: beneficiaries-sender.apk
