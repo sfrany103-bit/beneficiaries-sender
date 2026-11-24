@@ -446,7 +446,7 @@ $('excelFile').addEventListener('change', function (e) {
       const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
       rawExcelRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
       rebuildRowsFromRaw(); toast('تم تحميل الملف');
-    } catch (_) { toast('تعذّر قراءة الملف، تأكد من صيغته'); }
+        } catch (err) { toast('تعذّر قراءة الملف: ' + (err && err.message ? err.message : err)); }
   };
   reader.readAsArrayBuffer(file);
 });
