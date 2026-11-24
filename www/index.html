@@ -610,7 +610,8 @@ async function startBatch(mode) {
     } catch (err) {
       const c = err && err.code;
       const raw = String((err && (err.message || err.errorMessage)) || c || '').slice(0, 60);
-      const why = c === 'NOT_FOUND' ? ' — لا يوجد واتساب' : c === 'TIMEOUT' ? ' — انتهت المهلة' : c === 'SMS_FAILED' ? ' — فشل إرسال SMS' : (raw ? ' — ' + raw : '');
+            const smsNames = { '1': 'خطأ عام', '2': 'الراديو مطفأ', '3': 'خطأ PDU', '4': 'لا توجد خدمة/تغطية', '5': 'حد الإرسال', '7': 'لا يوجد وصول' };
+      const why = c === 'NOT_FOUND' ? ' — لا يوجد واتساب' : c === 'TIMEOUT' ? ' — انتهت المهلة' : c === 'SMS_FAILED' ? ' — فشل إرسال SMS (رمز ' + (err.message || '؟') + ': ' + (smsNames[err.message] || 'غير معروف') + ')' : (raw ? ' — ' + raw : '');
       Object.assign(item, { status: 'لم يتم الإرسال' + why, statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
     }
     saveItemProgress(item); updateRow(i); updateStatsAndButtons();
