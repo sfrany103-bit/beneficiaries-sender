@@ -16,6 +16,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.telephony.SmsManager;
 
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -28,7 +29,8 @@ import java.util.ArrayList;
 
 @CapacitorPlugin(name = "Sender", permissions = {
     @Permission(strings = {Manifest.permission.SEND_SMS}, alias = "sms"),
-    @Permission(strings = {Manifest.permission.READ_SMS}, alias = "smsRead")
+    @Permission(strings = {Manifest.permission.READ_SMS}, alias = "smsRead"),
+    @Permission(strings = {Manifest.permission.READ_PHONE_STATE}, alias = "phone")
 })
 public class SenderPlugin extends Plugin {
 
@@ -36,8 +38,8 @@ public class SenderPlugin extends Plugin {
 
     @PluginMethod
     public void sendSms(PluginCall call) {
-        if (getPermissionState("sms") != com.getcapacitor.PermissionState.GRANTED) {
-            requestPermissionForAlias("sms", call, "smsPermCallback");
+        if (!hasSendPerms()) {
+            requestPermissionForAliases(new String[]{"sms", "phone"}, call, "smsPermCallback");
             return;
         }
         doSendSms(call);
@@ -45,8 +47,13 @@ public class SenderPlugin extends Plugin {
 
     @PermissionCallback
     private void smsPermCallback(PluginCall call) {
-        if (getPermissionState("sms") == com.getcapacitor.PermissionState.GRANTED) doSendSms(call);
+        if (hasSendPerms()) doSendSms(call);
         else call.reject("no permission", "NO_PERM");
+    }
+
+    private boolean hasSendPerms() {
+        return getPermissionState("sms") == PermissionState.GRANTED
+            && getPermissionState("phone") == PermissionState.GRANTED;
     }
 
     private void doSendSms(final PluginCall call) {
@@ -55,7 +62,7 @@ public class SenderPlugin extends Plugin {
         if (phone == null || message == null) { call.reject("missing data"); return; }
         final Context ctx = getContext();
         try {
-                        SmsManager sm;
+            SmsManager sm;
             try {
                 sm = SmsManager.getDefault();
             } catch (Exception e0) {
@@ -112,7 +119,7 @@ public class SenderPlugin extends Plugin {
 
     @PluginMethod
     public void smsManual(PluginCall call) {
-        if (getPermissionState("smsRead") != com.getcapacitor.PermissionState.GRANTED) {
+        if (getPermissionState("smsRead") != PermissionState.GRANTED) {
             requestPermissionForAlias("smsRead", call, "smsReadCallback");
             return;
         }
@@ -121,7 +128,7 @@ public class SenderPlugin extends Plugin {
 
     @PermissionCallback
     private void smsReadCallback(PluginCall call) {
-        if (getPermissionState("smsRead") == com.getcapacitor.PermissionState.GRANTED) doSmsManual(call);
+        if (getPermissionState("smsRead") == PermissionState.GRANTED) doSmsManual(call);
         else call.reject("no permission", "NO_PERM");
     }
 
