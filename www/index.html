@@ -20,8 +20,11 @@ body{margin:0;background:var(--bg);color:var(--text);padding-bottom:90px;transit
 .hero::before{width:200px;height:200px;background:var(--b);top:-60px;left:-40px}
 .hero::after{width:170px;height:170px;background:var(--gold);bottom:-70px;right:-30px;animation-delay:-4s}
 @keyframes float{50%{transform:translate(24px,18px) scale(1.12)}}
-.hero h1{position:relative;margin:0;font-size:24px;font-weight:800}
+.hero h1{position:relative;margin:0;font-size:22px;font-weight:800;max-width:calc(100% - 140px)}
 .hero p{position:relative;margin:4px 0 0;font-size:14px;opacity:.8}
+.owner{position:absolute;left:16px;top:calc(22px + env(safe-area-inset-top));z-index:2;display:flex;flex-direction:column;gap:2px;text-align:left;direction:ltr;line-height:1.5}
+.owner b{font-size:14px;font-weight:800}
+.owner span{font-size:13px;opacity:.9;letter-spacing:.5px}
 .wrap{max-width:720px;margin:-48px auto 0;padding:0 14px;position:relative;z-index:2}
 .tabs{display:flex;background:var(--card);border-radius:999px;padding:5px;box-shadow:0 8px 24px rgba(0,0,0,.15);margin-bottom:14px}
 .tab{flex:1;border:0;border-radius:999px;padding:12px;font-size:15px;font-weight:700;background:transparent;color:var(--mute);cursor:pointer;transition:.3s}
@@ -117,7 +120,11 @@ td:nth-child(2){min-width:95px;line-height:1.6}
 </style>
 </head>
 <body>
-<div class="hero"><h1>مرسل المستفيدين</h1><p>أرسل رسائلك بسهولة وتابع النتائج مباشرة</p></div>
+<div class="hero">
+  <div class="owner"><b>ابو مها السفراني</b><span>0951254710</span></div>
+  <h1>بسم الله الرحمن الرحيم</h1>
+  <p>أرسل رسائلك بسهولة وتابع النتائج مباشرة</p>
+</div>
 
 <div class="wrap">
   <div class="tabs">
@@ -128,13 +135,14 @@ td:nth-child(2){min-width:95px;line-height:1.6}
   <div id="sendSection" class="sec">
     <div class="card">
       <h2>إرسال رسائل المستفيدين</h2>
-      <div class="hint">الأعمدة: <b>A</b> رقم الهاتف، <b>B</b> اسم المستفيد، <b>C</b> نص الرسالة (اختياري). الأرقام المكررة تُرسل كما هي بدون حذف.</div>
+      <div class="hint">الأعمدة: <b>A</b> رقم الهاتف، <b>B</b> اسم المستفيد، <b>C</b> نص الرسالة (اختياري). الأرقام المكررة تُرسل كما هي بدون حذف. عند تحميل النتائج تُضاف الحالة في العمود <b>D</b>.</div>
       <label class="drop" for="excelFile"><span class="ic">⬆</span><b>اختر ملف Excel</b><small id="fileName">xlsx أو xls أو csv</small>
         <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" /></label>
       <div class="seg">
         <button type="button" id="smsBtn" class="sms active" onclick="setChannel('sms')">SMS</button>
         <button type="button" id="waBtn" class="wa" onclick="setChannel('whatsapp')">واتساب</button>
       </div>
+      <div class="hint" id="modeBadge" style="margin:0 4px 6px;font-weight:700"></div>
       <div class="row">
         <button type="button" id="startBtn" class="btn b-go" onclick="startBatch('all')" disabled>بدء الإرسال</button>
         <button type="button" id="pauseResumeBtn" class="btn b-pause" onclick="togglePauseResume()" disabled>إيقاف مؤقت</button>
@@ -181,7 +189,7 @@ td:nth-child(2){min-width:95px;line-height:1.6}
       <h2>الإرسال</h2>
       <div class="swrow">
         <div><b>الإرسال التلقائي الكامل</b>
-          <small>يرسل SMS وواتساب (الرسمي والأعمال) بدون أي تدخل منك، ويسجل النتيجة تلقائياً. زر الإيقاف المؤقت يبقى ظاهراً.</small></div>
+          <small>يرسل SMS وواتساب (الرسمي والأعمال) بدون أي تدخل منك، ويسجل النتيجة تلقائياً، ويعيد المحاولة تلقائياً عند الفشل. إذا أُطفئ يكون الوضع <b>يدوي</b> وبدون إعادة محاولة. زر الإيقاف المؤقت يبقى ظاهراً.</small></div>
         <span class="tg"><input type="checkbox" id="autoToggle" /><i></i></span>
       </div>
       <div class="row">
@@ -201,6 +209,8 @@ td:nth-child(2){min-width:95px;line-height:1.6}
       <label class="l" for="delaySecondsInput">الفاصل بين الرسائل بالثواني (1 إلى 60)</label>
       <input type="number" id="delaySecondsInput" min="1" max="60" value="2" />
       <div class="hint" style="margin-top:6px;font-size:12px">لواتساب يُفضّل 8 ثوانٍ فأكثر لتقليل خطر الحظر.</div>
+      <label class="l" for="retriesInput">عدد إعادات المحاولة التلقائية عند الفشل (0 إلى 5، في الإرسال التلقائي فقط)</label>
+      <input type="number" id="retriesInput" min="0" max="5" value="2" />
     </div>
 
     <div class="card">
@@ -233,7 +243,7 @@ td:nth-child(2){min-width:95px;line-height:1.6}
 <script>
 const STORAGE_KEY = 'beneficiaries_sender_settings_v2';
 const PROGRESS_KEY = 'beneficiaries_sender_progress_v1';
-const DEFAULT_SETTINGS = { template: 'مرحباً {name}\n{message}', waApp: 'official', startRow: 2, delaySeconds: 2, countryCode: '', theme: 'green', auto: false };
+const DEFAULT_SETTINGS = { template: 'مرحباً {name}\n{message}', waApp: 'official', startRow: 2, delaySeconds: 2, retries: 2, countryCode: '', theme: 'green', auto: false };
 const THEMES = [
   { id: 'green', name: 'أخضر', c: ['#34d3a4', '#0f766e'] }, { id: 'night', name: 'ليلي', c: ['#5eead4', '#06121a'] },
   { id: 'violet', name: 'بنفسجي', c: ['#c084fc', '#7c3aed'] }, { id: 'ocean', name: 'محيطي', c: ['#38bdf8', '#0369a1'] },
@@ -243,6 +253,7 @@ const $ = id => document.getElementById(id);
 
 let appSettings = loadSettings();
 let rawExcelRows = [], rowsData = [], fileLabel = '', progressMap = {}, activeIdx = -1, wakeLock = null;
+let loadedWb = null, loadedSheet = '';
 let channel = 'sms', isRunning = false, isPaused = false;
 let pauseResolver = null, returnResolver = null, leftForExternalApp = false;
 let currentMode = 'all';
@@ -254,12 +265,13 @@ const persistSettings = () => safeSet(STORAGE_KEY, JSON.stringify(appSettings));
 function loadSettings() {
   try {
     const s = JSON.parse(safeGet(STORAGE_KEY) || 'null') || {};
-    const sec = Number(s.delaySeconds), row = Number(s.startRow);
+    const sec = Number(s.delaySeconds), row = Number(s.startRow), rt = Number(s.retries);
     return {
       template: typeof s.template === 'string' ? s.template : DEFAULT_SETTINGS.template,
       waApp: s.waApp === 'business' ? 'business' : 'official',
       startRow: Number.isFinite(row) && row >= 1 ? Math.floor(row) : 2,
       delaySeconds: Number.isFinite(sec) && sec >= 1 && sec <= 60 ? Math.round(sec) : 2,
+      retries: Number.isFinite(rt) && rt >= 0 && rt <= 5 ? Math.round(rt) : 2,
       countryCode: String(s.countryCode || '').replace(/\D/g, ''),
       theme: THEMES.some(t => t.id === s.theme) ? s.theme : 'green',
       auto: s.auto === true
@@ -270,6 +282,12 @@ function loadSettings() {
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function updateModeBadge() {
+  $('modeBadge').textContent = appSettings.auto
+    ? 'وضع الإرسال: تلقائي كامل (مع إعادة محاولة تلقائية عند الفشل)'
+    : 'وضع الإرسال: يدوي';
 }
 
 /* ---- المظهر ---- */
@@ -286,8 +304,8 @@ function buildThemes() {
   });
 }
 $('autoToggle').addEventListener('change', e => {
-  appSettings.auto = e.target.checked; persistSettings();
-  toast(appSettings.auto ? 'تم تفعيل الإرسال التلقائي' : 'تم إيقاف الإرسال التلقائي');
+  appSettings.auto = e.target.checked; persistSettings(); updateModeBadge();
+  toast(appSettings.auto ? 'تم تفعيل الإرسال التلقائي' : 'الوضع الآن: يدوي');
 });
 
 /* ---- تأثير الضغط ---- */
@@ -325,9 +343,11 @@ function populateSettingsForm() {
   $('waAppSelect').value = appSettings.waApp;
   $('startRowInput').value = appSettings.startRow;
   $('delaySecondsInput').value = appSettings.delaySeconds;
+  $('retriesInput').value = appSettings.retries;
   $('countryInput').value = appSettings.countryCode;
   $('autoToggle').checked = appSettings.auto;
   $('previewBox').classList.add('hidden'); $('previewBox').textContent = '';
+  updateModeBadge();
 }
 
 function formatTemplateWithValues(tpl, beneficiary, colC) {
@@ -352,6 +372,7 @@ function saveSettings() {
     waApp: $('waAppSelect').value === 'business' ? 'business' : 'official',
     startRow: clamp($('startRowInput').value, 1, 100000, 2),
     delaySeconds: clamp($('delaySecondsInput').value, 1, 60, 2),
+    retries: clamp($('retriesInput').value, 0, 5, 2),
     countryCode: $('countryInput').value.replace(/\D/g, ''),
     auto: $('autoToggle').checked
   };
@@ -400,7 +421,7 @@ const isValidPhone = raw => cleanPhone(raw).replace(/\D/g, '').length >= 6;
 const progId = it => `${fileLabel}|${it.excelRow}|${it.phone}|${it.beneficiary}`;
 function loadProgress() { try { progressMap = JSON.parse(safeGet(PROGRESS_KEY) || '{}') || {}; } catch (_) { progressMap = {}; } }
 function saveItemProgress(it) {
-  progressMap[progId(it)] = { s: it.status, sc: it.statusClass, pc: it.phoneClass, f: it.sentFlag, ch: it.channelUsed, sk: !!it.skipped };
+  progressMap[progId(it)] = { s: it.status, sc: it.statusClass, pc: it.phoneClass, f: it.sentFlag, ch: it.channelUsed, m: it.modeUsed || '', sk: !!it.skipped };
   safeSet(PROGRESS_KEY, JSON.stringify(progressMap));
 }
 function clearProgress() {
@@ -421,14 +442,14 @@ function rebuildRowsFromRaw() {
     if (!(phone || beneficiary || rawMessage)) continue;
     const valid = isValidPhone(phone);
     const item = {
-      excelRow: i + 1, phone, beneficiary, rawMessage, finalMessage: '', channelUsed: '',
+      excelRow: i + 1, phone, beneficiary, rawMessage, finalMessage: '', channelUsed: '', modeUsed: '',
       status: valid ? 'بانتظار الإرسال' : 'رقم غير صالح', statusClass: valid ? '' : 'st-warn',
       phoneClass: valid ? '' : 'sent-warn', sentFlag: valid ? 'بانتظار الإرسال' : 'رقم غير صالح',
       skipped: !valid, invalid: !valid
     };
     const sv = progressMap[progId(item)];
     if (valid && sv) {
-      Object.assign(item, { status: sv.s, statusClass: sv.sc, phoneClass: sv.pc, sentFlag: sv.f, channelUsed: sv.ch || '', skipped: !!sv.sk });
+      Object.assign(item, { status: sv.s, statusClass: sv.sc, phoneClass: sv.pc, sentFlag: sv.f, channelUsed: sv.ch || '', modeUsed: sv.m || '', skipped: !!sv.sk });
       restored++;
     }
     rowsData.push(item);
@@ -444,9 +465,10 @@ $('excelFile').addEventListener('change', function (e) {
   reader.onload = function (evt) {
     try {
       const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
-      rawExcelRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+      loadedWb = wb; loadedSheet = wb.SheetNames[0];
+      rawExcelRows = XLSX.utils.sheet_to_json(wb.Sheets[loadedSheet], { header: 1, defval: '' });
       rebuildRowsFromRaw(); toast('تم تحميل الملف');
-        } catch (err) { toast('تعذّر قراءة الملف: ' + (err && err.message ? err.message : err)); }
+    } catch (err) { toast('تعذّر قراءة الملف: ' + (err && err.message ? err.message : err)); }
   };
   reader.readAsArrayBuffer(file);
 });
@@ -599,20 +621,39 @@ async function startBatch(mode) {
     if (!go) continue;
 
     item.status = 'جاري الإرسال...'; item.statusClass = ''; item.skipped = false;
+    item.modeUsed = appSettings.auto ? 'تلقائي' : 'يدوي';
     setActive(i);
     $('currentText').textContent = `السطر ${item.excelRow}: ${item.beneficiary || item.phone}`;
 
-    try {
-      const res = await sendSingleItem(item);
+    /* إعادة المحاولة التلقائية: فقط في الإرسال التلقائي الكامل، أما اليدوي فمحاولة واحدة */
+    const maxTry = appSettings.auto ? 1 + appSettings.retries : 1;
+    let res = null, lastErr = null;
+    for (let t = 1; t <= maxTry; t++) {
+      try { res = await sendSingleItem(item); lastErr = null; break; }
+      catch (err) {
+        lastErr = err;
+        const c = err && err.code;
+        if (t < maxTry && c !== 'NOT_FOUND') {
+          item.status = `إعادة المحاولة ${t} من ${maxTry - 1}...`; item.statusClass = 'st-warn'; updateRow(i);
+          $('currentText').textContent = `السطر ${item.excelRow}: فشل الإرسال، إعادة المحاولة ${t} من ${maxTry - 1}`;
+          await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
+          await waitIfPaused();
+        } else break;
+      }
+    }
+
+    const man = appSettings.auto ? '' : ' (يدوي)';
+    if (!lastErr) {
       if (res === 'skip') Object.assign(item, { status: 'تم التخطي', statusClass: 'st-warn', phoneClass: 'sent-warn', sentFlag: 'تم التخطي', skipped: true });
-      else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
-      else Object.assign(item, { status: channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب', statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
-    } catch (err) {
-      const c = err && err.code;
+      else if (res === 'opened') Object.assign(item, { status: 'تم الفتح (غير مؤكد)' + man, statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الفتح (غير مؤكد)' });
+      else Object.assign(item, { status: (channel === 'sms' ? 'تم إرسال SMS' : 'تم إرسال واتساب') + man, statusClass: 'st-ok', phoneClass: 'sent-ok', sentFlag: 'تم الإرسال' });
+    } else {
+      const err = lastErr, c = err && err.code;
       const raw = String((err && (err.message || err.errorMessage)) || c || '').slice(0, 60);
-            const smsNames = { '1': 'خطأ عام', '2': 'الراديو مطفأ', '3': 'خطأ PDU', '4': 'لا توجد خدمة/تغطية', '5': 'حد الإرسال', '7': 'لا يوجد وصول' };
+      const smsNames = { '1': 'خطأ عام', '2': 'الراديو مطفأ', '3': 'خطأ PDU', '4': 'لا توجد خدمة/تغطية', '5': 'حد الإرسال', '7': 'لا يوجد وصول' };
       const why = c === 'NOT_FOUND' ? ' — لا يوجد واتساب' : c === 'TIMEOUT' ? ' — انتهت المهلة' : c === 'SMS_FAILED' ? ' — فشل إرسال SMS (رمز ' + (err.message || '؟') + ': ' + (smsNames[err.message] || 'غير معروف') + ')' : (raw ? ' — ' + raw : '');
-      Object.assign(item, { status: 'لم يتم الإرسال' + why, statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
+      const tries = maxTry > 1 ? ` (بعد ${maxTry} محاولات)` : '';
+      Object.assign(item, { status: 'لم يتم الإرسال' + why + tries, statusClass: 'st-err', phoneClass: 'sent-fail', sentFlag: 'لم يتم الإرسال' });
     }
     saveItemProgress(item); updateRow(i); updateStatsAndButtons();
     await new Promise(r => setTimeout(r, appSettings.delaySeconds * 1000));
@@ -626,16 +667,56 @@ async function startBatch(mode) {
   if (rowsData.some(x => x.phoneClass === 'sent-ok')) { confetti(); toast('انتهى الإرسال'); }
 }
 
-function exportReportExcel() {
-  if (!rowsData.length) return;
-  const rows = rowsData.map(it => ({
-    'رقم السطر': it.excelRow, 'رقم الهاتف': it.phone, 'اسم المستفيد': it.beneficiary,
-    'الرسالة النهائية': it.finalMessage || buildFinalMessage(it.beneficiary, it.rawMessage),
-    'نتيجة الإرسال': it.sentFlag, 'التفاصيل': it.status, 'القناة': it.channelUsed || '-'
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'نتائج الإرسال');
-  XLSX.writeFile(wb, 'نتائج_إرسال_المستفيدين.xlsx');
+/* ---- تحميل النتائج: نفس ملف الإكسل + عمود D بحالة كل مستفيد ---- */
+function statusLabelForExcel(it) {
+  const man = it.modeUsed === 'يدوي' ? ' (يدوي)' : '';
+  if (it.phoneClass === 'sent-ok') return (it.sentFlag === 'تم الفتح (غير مؤكد)' ? 'تم الفتح (غير مؤكد)' : 'تم الإرسال') + man;
+  if (it.phoneClass === 'sent-fail') return 'فشل الإرسال' + man;
+  if (it.phoneClass === 'sent-warn') return it.invalid ? 'رقم غير صالح' : 'تم التخطي';
+  return 'لم يتم الإرسال بعد';
+}
+
+async function saveWorkbook(wb, name) {
+  const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+  if (P.Filesystem && P.Share) {
+    const data = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const r = await P.Filesystem.writeFile({ path: name, data, directory: 'CACHE' });
+    await P.Share.share({ title: name, url: r.uri, dialogTitle: 'حفظ أو مشاركة ملف النتائج' });
+    return;
+  }
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  try {
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: name }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+  } catch (_) {}
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+async function exportReportExcel() {
+  if (!rowsData.length || !loadedWb) { toast('حمّل ملف الإكسل أولاً'); return; }
+  try {
+    const ws = loadedWb.Sheets[loadedSheet];
+    const hdr = appSettings.startRow - 1;
+    if (hdr >= 1) ws[XLSX.utils.encode_cell({ r: hdr - 1, c: 3 })] = { t: 's', v: 'حالة الإرسال' };
+    let maxRow = 0;
+    for (const it of rowsData) {
+      ws[XLSX.utils.encode_cell({ r: it.excelRow - 1, c: 3 })] = { t: 's', v: statusLabelForExcel(it) };
+      if (it.excelRow - 1 > maxRow) maxRow = it.excelRow - 1;
+    }
+    const rg = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    rg.e.c = Math.max(rg.e.c, 3); rg.e.r = Math.max(rg.e.r, maxRow);
+    ws['!ref'] = XLSX.utils.encode_range(rg);
+    const name = (fileLabel || 'ملف').replace(/\.[^.]+$/, '') + '_نتائج.xlsx';
+    await saveWorkbook(loadedWb, name);
+    toast('تم تجهيز ملف النتائج');
+  } catch (err) { toast('تعذّر تجهيز الملف: ' + (err && err.message ? err.message : err)); }
 }
 
 function escapeHtml(s) {
